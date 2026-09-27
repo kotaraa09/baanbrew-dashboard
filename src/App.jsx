@@ -8,6 +8,7 @@ import TracePanel from "./components/TracePanel.jsx";
 import ThemeToggle from "./components/ThemeToggle.jsx";
 import { Card, CalendarIcon, Collapsible, Segmented, Select, Skeleton, StoreIcon } from "./components/ui.jsx";
 import Lab2Page from "./lab2/Lab2Page.jsx";
+import CustomersView from "./components/CustomersView.jsx";
 import {
   prepareRows,
   computeKpis,
@@ -45,8 +46,12 @@ function useDashboardData() {
     const branchCsv = loadCsv(`${import.meta.env.BASE_URL}branches.csv`)
       .then((list) => list.filter((b) => b.branch))
       .catch(() => []);
-    Promise.all([loadCsv(`${import.meta.env.BASE_URL}sales.csv`), loadCsv(`${import.meta.env.BASE_URL}products.csv`), branchCsv])
-      .then(([sales, products, branchInfo]) => {
+    // customers.csv ใช้แค่แท็บลูกค้า โหลดไม่ได้ก็ยังแสดงแท็บอื่นได้ (กรองแบบเดียวกับ branches.csv)
+    const customerCsv = loadCsv(`${import.meta.env.BASE_URL}customers.csv`)
+      .then((list) => list.filter((c) => c.customer_id))
+      .catch(() => []);
+    Promise.all([loadCsv(`${import.meta.env.BASE_URL}sales.csv`), loadCsv(`${import.meta.env.BASE_URL}products.csv`), branchCsv, customerCsv])
+      .then(([sales, products, branchInfo, customers]) => {
         const rows = prepareRows(sales);
         if (rows.length === 0) throw new Error("ไฟล์ sales.csv ไม่มีข้อมูล");
         let first = rows[0].date;
@@ -56,7 +61,7 @@ function useDashboardData() {
           if (r.date > last) last = r.date;
         }
         const branches = [...new Set(rows.map((r) => r.branch))].sort((a, b) => a.localeCompare(b, "th"));
-        setState({ status: "ready", rows, products, branchInfo, first, last, branches });
+        setState({ status: "ready", rows, products, branchInfo, customers, first, last, branches });
       })
       .catch((err) => setState({ status: "error", message: err.message ?? String(err) }));
   }, []);
@@ -283,12 +288,13 @@ function Dashboard({ data }) {
 
 const TABS = [
   { value: "overview", label: "ภาพรวม" },
+  { value: "customers", label: "ลูกค้า" },
   { value: "lab2", label: "Lab 2.2 · ซ่อมกราฟ" },
 ];
 
-// จำแท็บไว้ใน URL (#lab2) รีเฟรชแล้วยังอยู่แท็บเดิม
+// จำแท็บไว้ใน URL (#customers, #lab2) รีเฟรชแล้วยังอยู่แท็บเดิม
 function useTab() {
-  const read = () => (window.location.hash === "#lab2" ? "lab2" : "overview");
+  const read = () => TABS.find((t) => `#${t.value}` === window.location.hash)?.value ?? "overview";
   const [tab, setTab] = useState(read);
   useEffect(() => {
     const onHash = () => setTab(read());
@@ -296,7 +302,7 @@ function useTab() {
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
   const change = (value) => {
-    window.location.hash = value === "lab2" ? "lab2" : "";
+    window.location.hash = value === "overview" ? "" : value;
     setTab(value);
   };
   return [tab, change];
@@ -325,7 +331,13 @@ export default function App() {
         <Segmented label="หน้า" value={tab} onChange={setTab} options={TABS} />
 
         {data.status === "ready" &&
-          (tab === "lab2" ? <Lab2Page rows={data.rows} products={data.products} /> : <Dashboard data={data} />)}
+          (tab === "lab2" ? (
+            <Lab2Page rows={data.rows} products={data.products} />
+          ) : tab === "customers" ? (
+            <CustomersView data={data} />
+          ) : (
+            <Dashboard data={data} />
+          ))}
 
         <footer className="pt-2 text-xs text-ink-muted">
           คำนวณจาก public/sales.csv · 1 แถว = 1 รายการสินค้า · ยอดขาย = qty × unit_price · ช่วงเวลานับถอยหลังจากวันล่าสุดในข้อมูล
