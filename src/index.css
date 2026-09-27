@@ -163,7 +163,9 @@ html { transition: background-color 0.5s ease; }
   position:absolute;top:var(--pad);left:var(--pad);
   width:var(--knob);height:var(--knob);overflow:visible;
   filter:drop-shadow(0 0 10px rgba(242,161,60,.55));
-  transition:transform .7s cubic-bezier(.62,-0.3,.35,1.4),filter .7s ease;
+  /* เลื่อนด้วย left เป็น % ของสวิตช์ ไม่ใช้ translateX(px): เบราว์เซอร์คิดระยะ transform กับ zoom ไม่ตรงกัน
+     บางตัวเลื่อนเต็ม 84px ทั้งที่สวิตช์ถูกย่อเหลือครึ่ง ดวงอาทิตย์เลยหลุดขอบขวา */
+  transition:left .7s cubic-bezier(.62,-0.3,.35,1.4),filter .7s ease;
 }
 .dn-disc{fill:#F8C551;transition:fill .75s ease}
 /* เงาหมุน 180° รอบจุดที่อยู่ใต้ดวง 33px จึงเข้ามาจากนอกดวงแล้วหยุดทางซ้าย กลายเป็นพระจันทร์เสี้ยว */
@@ -171,7 +173,7 @@ html { transition: background-color 0.5s ease; }
 .dn-in:checked + .dn-switch{background:linear-gradient(180deg,#33456A,#0C1220)}
 .dn-in:checked + .dn-switch .dn-clouds{transform:translate(-24px,36px);opacity:0}
 .dn-in:checked + .dn-switch .dn-stars{opacity:1}
-.dn-in:checked + .dn-switch .dn-orb{transform:translateX(calc(var(--w) - var(--knob) - var(--pad) * 2));filter:drop-shadow(0 0 9px rgba(214,228,250,.6))}
+.dn-in:checked + .dn-switch .dn-orb{left:calc(100% - var(--knob) - var(--pad));filter:drop-shadow(0 0 9px rgba(214,228,250,.6))}
 .dn-in:checked + .dn-switch .dn-disc{fill:#E9F0FB}
 .dn-in:checked + .dn-switch .dn-shade{transform:rotate(180deg)}
 
