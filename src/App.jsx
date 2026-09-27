@@ -40,10 +40,10 @@ function useDashboardData() {
   useEffect(() => {
     // branches.csv ใช้แค่กับ Replay (พิกัด, ประเภท, วันเปิด) โหลดไม่ได้ก็ยังแสดง Dashboard ได้
     // เก็บเฉพาะแถวที่มีคอลัมน์ branch จริง: ถ้าไม่มีไฟล์ dev server จะส่ง index.html (200) มาแทน ซึ่ง PapaParse ก็อ่านได้
-    const branchCsv = loadCsv("/branches.csv")
+    const branchCsv = loadCsv(`${import.meta.env.BASE_URL}branches.csv`)
       .then((list) => list.filter((b) => b.branch))
       .catch(() => []);
-    Promise.all([loadCsv("/sales.csv"), loadCsv("/products.csv"), branchCsv])
+    Promise.all([loadCsv(`${import.meta.env.BASE_URL}sales.csv`), loadCsv(`${import.meta.env.BASE_URL}products.csv`), branchCsv])
       .then(([sales, products, branchInfo]) => {
         const rows = prepareRows(sales);
         if (rows.length === 0) throw new Error("ไฟล์ sales.csv ไม่มีข้อมูล");
