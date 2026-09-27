@@ -101,7 +101,7 @@ function MetricTab({ metric, kpis, previousKpis, selected, onSelect }) {
       <span
         id={`def-${metric.key}`}
         role="tooltip"
-        className={`pointer-events-none invisible absolute inset-x-3 top-full z-10 mt-1 translate-y-1 rounded-lg bg-ink px-3 py-2 text-xs leading-relaxed font-normal text-white opacity-0 shadow-[0_4px_16px_rgb(0_0_0/0.16)] transition-[opacity,translate,visibility] duration-200 ease-[var(--ease-out)] ${
+        className={`pointer-events-none invisible absolute inset-x-3 top-full z-10 mt-1 translate-y-1 rounded-lg bg-ink px-3 py-2 text-xs leading-relaxed font-normal text-surface opacity-0 shadow-[0_4px_16px_rgb(0_0_0/0.16)] transition-[opacity,translate,visibility] duration-200 ease-[var(--ease-out)] ${
           dismissed
             ? ""
             : "group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-hover:delay-150 group-focus-visible:visible group-focus-visible:translate-y-0 group-focus-visible:opacity-100"
@@ -341,7 +341,7 @@ export default function TrendCard({
                     stroke="var(--color-chart)"
                     strokeWidth={2.5}
                     dot={false}
-                    activeDot={{ r: 4, strokeWidth: 2, stroke: "#fff" }}
+                    activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--color-surface)" }}
                     isAnimationActive={false}
                   />
                 )}
@@ -364,7 +364,7 @@ export default function TrendCard({
                     stroke="var(--color-chart)"
                     strokeWidth={2}
                     dot={false}
-                    activeDot={{ r: 4, strokeWidth: 2, stroke: "#fff" }}
+                    activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--color-surface)" }}
                     isAnimationActive={false}
                   />
                 )}

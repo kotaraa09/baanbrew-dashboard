@@ -5,6 +5,7 @@ import BranchCard from "./components/BranchCard.jsx";
 import TopProductsCard from "./components/TopProductsCard.jsx";
 import ReplayCard from "./components/ReplayCard.jsx";
 import TracePanel from "./components/TracePanel.jsx";
+import ThemeToggle from "./components/ThemeToggle.jsx";
 import { Card, CalendarIcon, Collapsible, Select, Skeleton, StoreIcon } from "./components/ui.jsx";
 import {
   prepareRows,
@@ -285,13 +286,15 @@ export default function App() {
   return (
     <main className="min-h-screen px-4 py-6 sm:px-6 lg:py-8">
       <div className="mx-auto max-w-6xl space-y-4">
-        <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <h1 className="text-xl font-bold text-ink">บ้านบรู Dashboard</h1>
+        {/* มือถือ: ชื่อ + สวิตช์ธีมอยู่แถวเดียวกัน วันที่ลงไปแถวล่าง · จอกว้าง: ทุกอย่างแถวเดียว สวิตช์ชิดขวา */}
+        <header className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <h1 className="mr-auto text-xl font-bold text-ink">บ้านบรู Dashboard</h1>
           {data.status === "ready" && (
-            <p className="text-[13px] text-ink-subtle">
+            <p className="order-last w-full text-[13px] text-ink-subtle sm:order-none sm:w-auto">
               ข้อมูลล่าสุด {formatDate(data.last)} · {data.branches.length} สาขา
             </p>
           )}
+          <ThemeToggle />
         </header>
 
         {data.status === "loading" && <LoadingState />}

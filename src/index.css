@@ -49,6 +49,40 @@
   }
 }
 
+
+/* โหมดมืด: เปลี่ยนแค่ token ส่วน component ใช้ var(--color-*) อยู่แล้วจึงเปลี่ยนตามเอง
+   ค่าเริ่มต้นตามระบบ (สคริปต์ใน index.html ตั้ง data-theme ก่อน render) ผู้ใช้สลับเองได้ที่ ThemeToggle */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-canvas: #161616;
+  --color-surface: #222222;
+  --color-surface-hover: #2a2a2a;
+  --color-surface-selected: #2e2e2e;
+  --color-line: #333333;
+  --color-line-strong: #474747;
+
+  --color-ink: #ececec;
+  --color-ink-subtle: #adadad;
+  --color-ink-muted: #9c9c9c;
+
+  --color-chart: #4a90e2;
+  --color-chart-soft: #7ba3d9;
+  --color-bar-muted: #6e6e6e;
+  --color-chart-bar: #4a8fe0;
+
+  --color-up: #86e0ab;
+  --color-up-bg: #113a25;
+  --color-down: #ffa3a6;
+  --color-down-bg: #4a161c;
+
+  --color-water: #1f3349;
+  --color-water-ink: #7fa4cd;
+
+  --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.06), 0 1px 2px 0 rgb(0 0 0 / 0.4);
+}
+:root { color-scheme: light; }
+html { transition: background-color 0.5s ease; }
+
 @layer base {
   html {
     /* จองที่ scrollbar ไว้เสมอ ตอนแผง Trace ล็อกการเลื่อน หน้าจะไม่ขยับไปข้าง ๆ (Windows) */
@@ -99,6 +133,47 @@
 .trace-backdrop-in { animation: trace-fade-in 240ms ease-out; }
 .trace-backdrop-out { animation: trace-fade-out 200ms ease-in forwards; }
 .trace-bar { animation: trace-bar 700ms var(--ease-out) backwards; }
+
+/* ThemeToggle: สวิตช์กลางวัน/กลางคืน ออกแบบไว้ที่ 150×66px แล้วย่อด้วย zoom ให้สูงเท่าปุ่มอื่นบนหัว (≈33px)
+   ใช้ zoom แทน transform เพื่อให้ขนาดใน layout ย่อตามด้วย */
+.dn-switch{
+  --w:150px;--h:66px;--pad:7px;--knob:52px;
+  zoom:.5;
+  position:relative;display:block;width:var(--w);height:var(--h);
+  border-radius:calc(var(--h) / 2);cursor:pointer;overflow:hidden;
+  background:linear-gradient(180deg,#8ED6FB,#3F9AE0);
+  box-shadow:inset 0 2px 6px rgba(12,40,66,.16),inset 0 -1px 0 rgba(255,255,255,.22),0 10px 22px -12px rgba(10,30,60,.55);
+  transition:background .7s cubic-bezier(.4,0,.2,1);
+}
+.dn-in,.dn-sr{position:absolute;opacity:0;width:1px;height:1px;margin:-1px;overflow:hidden;clip-path:inset(50%)}
+.dn-in:focus-visible + .dn-switch{outline:6px solid var(--color-chart);outline-offset:6px}
+.dn-clouds{position:absolute;inset:0;transition:transform .8s cubic-bezier(.5,0,.2,1),opacity .6s ease}
+.dn-cloud{position:absolute;background:#FFF;border-radius:999px;opacity:.92}
+.dn-cloud::before,.dn-cloud::after{content:"";position:absolute;background:#FFF;border-radius:999px}
+.dn-c1{width:34px;height:11px;left:14px;bottom:12px}
+.dn-c1::before{width:16px;height:16px;left:6px;top:-8px}
+.dn-c1::after{width:11px;height:11px;left:20px;top:-6px}
+.dn-c2{width:26px;height:9px;left:58px;bottom:42px;opacity:.72}
+.dn-c2::before{width:12px;height:12px;left:5px;top:-6px}
+.dn-c3{width:22px;height:8px;left:100px;bottom:16px;opacity:.55}
+.dn-c3::before{width:11px;height:11px;left:4px;top:-5px}
+.dn-stars{position:absolute;inset:0;opacity:0;transition:opacity .5s ease .15s}
+.dn-star{position:absolute;background:#FFF;border-radius:50%;box-shadow:0 0 4px rgba(255,255,255,.9)}
+.dn-orb{
+  position:absolute;top:var(--pad);left:var(--pad);
+  width:var(--knob);height:var(--knob);overflow:visible;
+  filter:drop-shadow(0 0 10px rgba(242,161,60,.55));
+  transition:transform .7s cubic-bezier(.62,-0.3,.35,1.4),filter .7s ease;
+}
+.dn-disc{fill:#F8C551;transition:fill .75s ease}
+/* เงาหมุน 180° รอบจุดที่อยู่ใต้ดวง 33px จึงเข้ามาจากนอกดวงแล้วหยุดทางซ้าย กลายเป็นพระจันทร์เสี้ยว */
+.dn-shade{transform-box:view-box;transform-origin:26px 59px;transition:transform .85s cubic-bezier(.45,.05,.25,1)}
+.dn-in:checked + .dn-switch{background:linear-gradient(180deg,#33456A,#0C1220)}
+.dn-in:checked + .dn-switch .dn-clouds{transform:translate(-24px,36px);opacity:0}
+.dn-in:checked + .dn-switch .dn-stars{opacity:1}
+.dn-in:checked + .dn-switch .dn-orb{transform:translateX(calc(var(--w) - var(--knob) - var(--pad) * 2));filter:drop-shadow(0 0 9px rgba(214,228,250,.6))}
+.dn-in:checked + .dn-switch .dn-disc{fill:#E9F0FB}
+.dn-in:checked + .dn-switch .dn-shade{transform:rotate(180deg)}
 
 /* ผู้ใช้ตั้งค่าลดการเคลื่อนไหว: ปิดทุก animation/transition ในที่เดียว (ยังจบสถานะปลายทางเหมือนเดิม)
    ไม่ต้องเขียน reduced-motion แยกตามแต่ละ component อีก */

@@ -4,6 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>บ้านบรู Dashboard</title>
+    <script>
+      // ตั้งธีมก่อน render กันหน้าจอกะพริบขาว: ค่าที่ผู้ใช้เลือกไว้ ไม่งั้นตามระบบ
+      (function () {
+        var t = null;
+        try { t = localStorage.getItem("baanbrew-theme"); } catch (e) {}
+        if (t !== "dark" && t !== "light") t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.dataset.theme = t;
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

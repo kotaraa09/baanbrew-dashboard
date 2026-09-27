@@ -376,7 +376,7 @@ export default function TracePanel({ spec, rows, onClose }) {
   return (
     <div className="fixed inset-0 z-50" onKeyDown={onKeyDown}>
       <div
-        className={`absolute inset-0 bg-ink/25 ${closing ? "trace-backdrop-out" : "trace-backdrop-in"}`}
+        className={`absolute inset-0 bg-black/30 ${closing ? "trace-backdrop-out" : "trace-backdrop-in"}`}
         onClick={requestClose}
         aria-hidden="true"
       />
