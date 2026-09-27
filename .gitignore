@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+.env.local
+.DS_Store
+_converted_backup/
+.claude/
+.impeccable/

@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+/* Tokens อ้างอิงแนวทาง analytics มาตรฐาน (Shopify Admin / Polaris):
+   พื้นเทาอ่อน, การ์ดขาว, ตัวอักษรเทาเข้ม, สีกราฟหลักสีเดียว, เขียว/แดงใช้กับการเปลี่ยนแปลงเท่านั้น */
+@theme {
+  --font-sans: "Anuphan", "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+
+  --color-canvas: #f1f1f1;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f7f7f7;
+  --color-surface-selected: #f3f3f3;
+  --color-line: #e3e3e3;
+  --color-line-strong: #cccccc;
+
+  --color-ink: #303030;
+  --color-ink-subtle: #616161;
+  --color-ink-muted: #6b6b6b;
+
+  --color-chart: #1b6fd1;
+  --color-chart-soft: #6592cf; /* ≥3:1 บนพื้นขาว */
+  --color-bar-muted: #8a8a8a;
+  --color-chart-bar: #3d85d8;
+
+  --color-up: #0c5132;
+  --color-up-bg: #cdfee1;
+  --color-down: #8e0b21;
+  --color-down-bg: #fedad9;
+
+  --color-water: #d3e3f5; /* แม่น้ำบนแผนที่ Replay (ตกแต่ง ไม่ใช่ข้อมูล) */
+  --color-water-ink: #5b7fa8;
+
+  --shadow-card: 0 1px 0 0 rgb(26 26 26 / 0.07), 0 1px 2px 0 rgb(26 26 26 / 0.08);
+  --radius-card: 12px;
+
+  /* Motion: ease-out ตัวเดียวทั้งระบบ, ของเข้ายาวกว่าของออก, ไม่เด้ง */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-rise: rise 520ms var(--ease-out) backwards;
+  --animate-fade-in: fade-in 320ms ease-out backwards;
+  --animate-pop: pop 280ms var(--ease-out);
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(10px); }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+  }
+  @keyframes pop {
+    from { opacity: 0; transform: scale(0.85); }
+  }
+}
+
+@layer base {
+  html {
+    /* จองที่ scrollbar ไว้เสมอ ตอนแผง Trace ล็อกการเลื่อน หน้าจะไม่ขยับไปข้าง ๆ (Windows) */
+    scrollbar-gutter: stable;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-chart);
+    outline-offset: 2px;
+  }
+}
+
+/* Recharts: เอาเส้น focus สี่เหลี่ยมของ svg ออก เพราะมีเส้น focus ของปุ่มแทนแล้ว */
+.recharts-surface:focus,
+.recharts-wrapper:focus {
+  outline: none;
+}
+
+/* Replay: ไฮไลต์แวบเดียวเมื่อสาขาขึ้นอันดับ */
+@keyframes replay-flash {
+  from { background: var(--color-up-bg); }
+  to { background: transparent; }
+}
+.replay-flash {
+  animation: replay-flash 900ms ease-out forwards;
+}
+
+/* Trace: แผงเลื่อนจากขวา + แถบกรองแถวค่อย ๆ หดตามลำดับขั้น */
+@keyframes trace-panel-in {
+  from { transform: translateX(100%); }
+}
+@keyframes trace-panel-out {
+  to { transform: translateX(100%); }
+}
+@keyframes trace-fade-in {
+  from { opacity: 0; }
+}
+@keyframes trace-fade-out {
+  to { opacity: 0; }
+}
+@keyframes trace-bar {
+  from { width: 100%; }
+}
+.trace-panel-in { animation: trace-panel-in 320ms var(--ease-out); }
+.trace-panel-out { animation: trace-panel-out 200ms cubic-bezier(0.4, 0, 1, 1) forwards; }
+.trace-backdrop-in { animation: trace-fade-in 240ms ease-out; }
+.trace-backdrop-out { animation: trace-fade-out 200ms ease-in forwards; }
+.trace-bar { animation: trace-bar 700ms var(--ease-out) backwards; }
+
+/* ผู้ใช้ตั้งค่าลดการเคลื่อนไหว: ปิดทุก animation/transition ในที่เดียว (ยังจบสถานะปลายทางเหมือนเดิม)
+   ไม่ต้องเขียน reduced-motion แยกตามแต่ละ component อีก */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+  }
+}
