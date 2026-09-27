@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Card, CardHeader, Segmented } from "./ui.jsx";
 import { customerView, ACTIVE_DAYS } from "../lib/customerMetrics.js";
+import CustomersStory from "./CustomersStory.jsx";
 import { formatBaht, formatBahtExact, formatDate, formatMonth, formatNumber } from "../lib/metrics.js";
 
 const pct = (n) => `${(n * 100).toFixed(1)}%`;
@@ -176,12 +177,54 @@ function SegmentsCard({ segments }) {
   );
 }
 
+const MODES = [
+  { value: "story", label: "แบบเล่าเรื่อง" },
+  { value: "detail", label: "ตัวเลขละเอียด" },
+];
+const MODE_KEY = "baanbrew-customers-mode";
+
+// จำแบบที่เลือกไว้ในเบราว์เซอร์ (เปิด private / บล็อก storage ก็ยังใช้ได้ แค่ไม่จำ)
+function useMode() {
+  const [mode, setMode] = useState(() => {
+    try {
+      return localStorage.getItem(MODE_KEY) === "detail" ? "detail" : "story";
+    } catch {
+      return "story";
+    }
+  });
+  const change = (value) => {
+    setMode(value);
+    try {
+      localStorage.setItem(MODE_KEY, value);
+    } catch {
+      // ไม่จำก็ไม่เป็นไร
+    }
+  };
+  return [mode, change];
+}
+
 export default function CustomersView({ data }) {
+  const [mode, setMode] = useMode();
   const view = useMemo(
     () => customerView(data.rows, data.customers, data.branchInfo, data.last),
     [data]
   );
 
+  return (
+    <>
+      <div className="flex items-center gap-2">
+        <Segmented label="รูปแบบการแสดงผล" value={mode} onChange={setMode} options={MODES} />
+      </div>
+      {mode === "story" && data.customers.length > 0 ? (
+        <CustomersStory view={view} data={data} />
+      ) : (
+        <DetailView data={data} view={view} />
+      )}
+    </>
+  );
+}
+
+function DetailView({ data, view }) {
   if (data.customers.length === 0) {
     return (
       <Card className="px-5 py-8 text-center">
