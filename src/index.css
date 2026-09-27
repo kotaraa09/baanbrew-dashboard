@@ -147,7 +147,7 @@ html { transition: background-color 0.5s ease; }
 }
 .dn-in,.dn-sr{position:absolute;opacity:0;width:1px;height:1px;margin:-1px;overflow:hidden;clip-path:inset(50%)}
 .dn-in:focus-visible + .dn-switch{outline:6px solid var(--color-chart);outline-offset:6px}
-.dn-clouds{position:absolute;inset:0;transition:transform .8s cubic-bezier(.5,0,.2,1),opacity .6s ease}
+.dn-clouds{position:absolute;inset:0;z-index:1;transition:transform .8s cubic-bezier(.5,0,.2,1),opacity .6s ease}
 .dn-cloud{position:absolute;background:#FFF;border-radius:999px;opacity:.92}
 .dn-cloud::before,.dn-cloud::after{content:"";position:absolute;background:#FFF;border-radius:999px}
 .dn-c1{width:34px;height:11px;left:14px;bottom:12px}
