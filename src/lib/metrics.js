@@ -151,6 +151,15 @@ export function timeSeries(rows, start, end, granularity) {
   });
 }
 
+// ยอดขายรวมรายวัน เรียงตามวันที่ (เฉพาะวันที่มียอดขาย) ใช้ในกราฟ Lab 2.2
+export function dailyRevenue(rows) {
+  const map = new Map();
+  for (const r of rows) map.set(r.date, (map.get(r.date) ?? 0) + r.revenue);
+  return [...map.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, revenue]) => ({ date, revenue }));
+}
+
 // ค่าเฉลี่ยเคลื่อนที่ (moving average) รายวัน ช่วยให้เห็นแนวโน้มโดยไม่ยุ่งตามยอดที่แกว่งรายวัน
 // - ค่าของแต่ละวัน = เฉลี่ยของวันนั้นกับ 6 วันก่อนหน้า (window = 7)
 // - วันแรก ๆ ของช่วงดึงข้อมูลก่อนช่วงมาใช้ด้วย จะได้ไม่เพี้ยนที่ต้นกราฟ ดังนั้น rows ต้องเป็นข้อมูลทุกวัน (กรองสาขาแล้ว)

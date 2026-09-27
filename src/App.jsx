@@ -6,7 +6,8 @@ import TopProductsCard from "./components/TopProductsCard.jsx";
 import ReplayCard from "./components/ReplayCard.jsx";
 import TracePanel from "./components/TracePanel.jsx";
 import ThemeToggle from "./components/ThemeToggle.jsx";
-import { Card, CalendarIcon, Collapsible, Select, Skeleton, StoreIcon } from "./components/ui.jsx";
+import { Card, CalendarIcon, Collapsible, Segmented, Select, Skeleton, StoreIcon } from "./components/ui.jsx";
+import Lab2Page from "./lab2/Lab2Page.jsx";
 import {
   prepareRows,
   computeKpis,
@@ -280,8 +281,30 @@ function Dashboard({ data }) {
   );
 }
 
+const TABS = [
+  { value: "overview", label: "ภาพรวม" },
+  { value: "lab2", label: "Lab 2.2 · ซ่อมกราฟ" },
+];
+
+// จำแท็บไว้ใน URL (#lab2) รีเฟรชแล้วยังอยู่แท็บเดิม
+function useTab() {
+  const read = () => (window.location.hash === "#lab2" ? "lab2" : "overview");
+  const [tab, setTab] = useState(read);
+  useEffect(() => {
+    const onHash = () => setTab(read());
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+  const change = (value) => {
+    window.location.hash = value === "lab2" ? "lab2" : "";
+    setTab(value);
+  };
+  return [tab, change];
+}
+
 export default function App() {
   const data = useDashboardData();
+  const [tab, setTab] = useTab();
 
   return (
     <main className="min-h-screen px-4 py-6 sm:px-6 lg:py-8">
@@ -299,7 +322,10 @@ export default function App() {
 
         {data.status === "loading" && <LoadingState />}
         {data.status === "error" && <ErrorState message={data.message} />}
-        {data.status === "ready" && <Dashboard data={data} />}
+        <Segmented label="หน้า" value={tab} onChange={setTab} options={TABS} />
+
+        {data.status === "ready" &&
+          (tab === "lab2" ? <Lab2Page rows={data.rows} products={data.products} /> : <Dashboard data={data} />)}
 
         <footer className="pt-2 text-xs text-ink-muted">
           คำนวณจาก public/sales.csv · 1 แถว = 1 รายการสินค้า · ยอดขาย = qty × unit_price · ช่วงเวลานับถอยหลังจากวันล่าสุดในข้อมูล
