@@ -52,7 +52,7 @@ function Chapter({ n, kicker, title, children, note }) {
       }`}
     >
       <p className="flex items-center gap-2 text-[13px] font-semibold text-chart">
-        <span className="inline-flex size-6 items-center justify-center rounded-full bg-chart text-xs text-white">{n}</span>
+        <span className="inline-flex size-6 items-center justify-center rounded-full bg-chart text-xs text-on-chart">{n}</span>
         {kicker}
       </p>
       <h2 className="mt-3 max-w-3xl text-2xl leading-snug font-bold text-balance text-ink sm:text-3xl">{title(seen)}</h2>
@@ -132,7 +132,7 @@ export default function CustomersStory({ view, data }) {
           <>
             <div className="flex h-14 overflow-hidden rounded-xl bg-canvas" role="img"
               aria-label={`ยอดขายจากสมาชิก ${pct0(kpis.memberShare)} ลูกค้าทั่วไป ${pct0(1 - kpis.memberShare)}`}>
-              <div className="flex items-center bg-chart-bar px-4 text-sm font-semibold text-white transition-[width] duration-1000 ease-[var(--ease-out)]"
+              <div className="flex items-center bg-chart-bar px-4 text-sm font-semibold text-on-chart transition-[width] duration-1000 ease-[var(--ease-out)]"
                 style={{ width: seen ? `${kpis.memberShare * 100}%` : "0%" }}>
                 <span className="truncate">สมาชิก {pct0(kpis.memberShare)}</span>
               </div>

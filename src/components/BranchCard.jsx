@@ -65,6 +65,15 @@ export default function BranchCard({ data, subtitle, hasComparison, highlight = 
         >
           <ResponsiveContainer>
             <BarChart data={data} layout="vertical" margin={{ top: 20, right: 0, left: 0, bottom: 0 }} barSize={10}>
+              <defs>
+                <linearGradient id="bar-gold" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0" stopColor="var(--lg-dark)" />
+                  <stop offset=".3" stopColor="var(--lg-mid)" />
+                  <stop offset=".55" stopColor="var(--lg-light)" />
+                  <stop offset=".75" stopColor="var(--lg-mid)" />
+                  <stop offset="1" stopColor="var(--lg-shine)" />
+                </linearGradient>
+              </defs>
               <XAxis type="number" hide domain={[0, max || 1]} />
               <YAxis type="category" dataKey="branch" hide />
               <Bar
@@ -76,7 +85,7 @@ export default function BranchCard({ data, subtitle, hasComparison, highlight = 
                 {data.map((d) => (
                   <Cell
                     key={d.branch}
-                    fill={highlight === "all" || highlight === d.branch ? "var(--color-chart-bar)" : "var(--color-bar-muted)"}
+                    fill={highlight === "all" || highlight === d.branch ? "url(#bar-gold)" : "var(--color-bar-muted)"}
                   />
                 ))}
                 <LabelList content={<RowLabel data={data} max={max} />} />

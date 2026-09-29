@@ -111,11 +111,42 @@ export const CalendarIcon = (p) => (
   </Icon>
 );
 
+// หน้าร้านกาแฟ: กันสาด + ถ้วยกาแฟในหน้าต่าง
 export const StoreIcon = (p) => (
   <Icon {...p}>
     <path d="M3.5 8v8.5h13V8" />
     <path d="M2.5 4h15l-1 4a2.1 2.1 0 0 1-4 0 2.1 2.1 0 0 1-4 0 2.1 2.1 0 0 1-4 0 2.1 2.1 0 0 1-2-4Z" />
-    <path d="M8 16.5v-4h4v4" />
+    <path d="M7.5 11.5h4v1.8a2 2 0 0 1-2 2 2 2 0 0 1-2-2Z" />
+    <path d="M11.5 12h.6a1 1 0 0 1 0 2h-.8" />
+  </Icon>
+);
+
+// ---------- ไอคอนกาแฟ (ชุดเดียวกับข้างบน เส้น 1.5px) ----------
+
+// เมล็ดกาแฟ = ภาพรวม
+export const BeanIcon = (p) => (
+  <Icon {...p}>
+    <ellipse cx="10" cy="10" rx="5" ry="7.25" transform="rotate(35 10 10)" />
+    <path d="M0-6.2C2.5-2.7-2.5 2.7 0 6.2" transform="translate(10 10) rotate(35)" />
+  </Icon>
+);
+
+// ถ้วยกาแฟมีไอกรุ่น = ลูกค้า (ขาประจำ)
+export const CupIcon = (p) => (
+  <Icon {...p}>
+    <path d="M4 8.5h9v3a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4Z" />
+    <path d="M13 9.5h.8a2 2 0 0 1 0 4H12.7" />
+    <path d="M3 17.5h11" />
+    <path d="M7 6c-.8-.9.8-1.6 0-2.8M10.5 6c-.8-.9.8-1.6 0-2.8" />
+  </Icon>
+);
+
+// ดริปเปอร์ดริปกาแฟ = Lab (ห้องทดลองชงกราฟ)
+export const DripperIcon = (p) => (
+  <Icon {...p}>
+    <path d="M3.5 4h13l-4 7h-5Z" />
+    <path d="M8.5 11v1.5h3V11" />
+    <path d="M5.5 14.5h9l-.9 3H6.4Z" />
   </Icon>
 );
 
@@ -151,7 +182,7 @@ const ArrowDownIcon = (p) => (
 export function Card({ as: Tag = "section", className = "", children, ...rest }) {
   return (
     <Tag
-      className={`rounded-[var(--radius-card)] bg-surface shadow-[var(--shadow-card)] ${className}`}
+      className={`card-sheen rounded-[var(--radius-card)] bg-surface shadow-[var(--shadow-card)] ${className}`}
       {...rest}
     >
       {children}
@@ -235,10 +266,11 @@ export function Segmented({ label, value, onChange, options }) {
             aria-checked={active}
             disabled={o.disabled}
             onClick={() => onChange(o.value)}
-            className={`relative h-7 rounded-md px-2.5 text-xs font-medium transition-colors duration-200 disabled:cursor-not-allowed disabled:text-ink-muted/50 ${
+            className={`relative inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors duration-200 disabled:cursor-not-allowed disabled:text-ink-muted/50 ${
               active ? "text-ink" : "text-ink-subtle hover:text-ink"
             }`}
           >
+            {o.icon && <o.icon className={`size-3.5 transition-colors duration-200 ${active ? "text-chart" : ""}`} />}
             {o.label}
           </button>
         );

@@ -8,7 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Card, Change, Segmented, TraceIcon, useTweenedNumber } from "./ui.jsx";
+import { CupIcon, Card, Change, Segmented, TraceIcon, useTweenedNumber } from "./ui.jsx";
 import {
   formatBaht,
   formatBahtExact,
@@ -271,6 +271,7 @@ export default function TrendCard({
 
         {isEmpty ? (
           <div className="flex h-72 flex-col items-center justify-center rounded-lg bg-surface-hover text-center">
+            <CupIcon className="mb-2 size-7 text-chart-soft" />
             <p className="text-sm font-medium text-ink">ไม่มียอดขายในช่วงเวลานี้</p>
             <p className="mt-1 max-w-xs text-[13px] text-ink-subtle">
               สาขานี้อาจยังไม่เปิดในช่วงที่เลือก ลองเลือกช่วงเวลาที่ยาวขึ้น หรือเปลี่ยนเป็นทุกสาขา
@@ -310,6 +311,18 @@ export default function TrendCard({
                   offset={24}
                   cursor={{ stroke: "var(--color-line-strong)" }}
                 />
+                {/* ไล่สีทองโลหะตามแนวนอน: ช่วงสว่าง-มืดสลับ ทำให้เส้นดูมีประกาย */}
+                <defs>
+                  <linearGradient id="trend-gold" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0" stopColor="var(--lg-dark)" />
+                    <stop offset=".22" stopColor="var(--lg-mid)" />
+                    <stop offset=".36" stopColor="var(--lg-light)" />
+                    <stop offset=".5" stopColor="var(--lg-mid)" />
+                    <stop offset=".68" stopColor="var(--lg-dark)" />
+                    <stop offset=".84" stopColor="var(--lg-light)" />
+                    <stop offset="1" stopColor="var(--lg-mid)" />
+                  </linearGradient>
+                </defs>
                 {showPrevious && (
                   <Line
                     type="monotone"
@@ -338,7 +351,8 @@ export default function TrendCard({
                   <Line
                     type="monotone"
                     dataKey="average"
-                    stroke="var(--color-chart)"
+                    className="gold-line"
+                    stroke="url(#trend-gold)"
                     strokeWidth={2.5}
                     dot={false}
                     activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--color-surface)" }}
@@ -361,8 +375,9 @@ export default function TrendCard({
                   <Line
                     type="monotone"
                     dataKey="solid"
-                    stroke="var(--color-chart)"
-                    strokeWidth={2}
+                    className="gold-line"
+                    stroke="url(#trend-gold)"
+                    strokeWidth={2.25}
                     dot={false}
                     activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--color-surface)" }}
                     isAnimationActive={false}

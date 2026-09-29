@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, Segmented, prefersReducedMotion } from "./ui.jsx";
+import MarbleArt from "./MarbleArt.jsx";
 import { formatBaht, formatDate, formatMonth, formatNumber } from "../lib/metrics.js";
 
 // เล่นย้อนหลังทีละสัปดาห์ ความเร็วปกติ 1 สัปดาห์ = 250ms (ข้อมูล ~77 สัปดาห์ ≈ 20 วินาที)
@@ -145,7 +146,7 @@ function ReplayMap({ branches, t, maxValue }) {
             {isNew && (
               <g transform={`translate(${anchor === "end" ? lx - 58 : lx} ${ly - 36})`}>
                 <rect width="58" height="18" rx="9" fill="var(--color-chart)" />
-                <text x="29" y="12.5" fontSize="11" fontWeight="600" textAnchor="middle" fill="#fff">
+                <text x="29" y="12.5" fontSize="11" fontWeight="600" textAnchor="middle" fill="var(--color-on-chart)">
                   สาขาใหม่
                 </text>
               </g>
@@ -426,9 +427,16 @@ export default function ReplayCard({ frames, branchInfo, onClose }) {
       aria-label="ย้อนดูการเติบโตของเครือร้าน"
       onKeyDown={(e) => e.key === "Escape" && onClose()}
     >
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 pt-4 sm:px-5">
+      {/* แถบหัวเป็นหินอ่อนดำ-ทองชุดเดียวกับหัวหน้า (มืดเสมอ: .theme-dark ให้ปุ่มในแถบใช้สีโหมดมืด) ปิดด้วยเส้นทองบาง */}
+      <div className="theme-dark relative overflow-hidden bg-[#070707]">
+        <MarbleArt className="absolute inset-0 size-full" />
+        <div
+          aria-hidden="true"
+          className="absolute inset-y-0 left-0 w-full bg-gradient-to-r from-[#070707]/95 via-[#070707]/75 via-40% to-transparent sm:w-1/2"
+        />
+      <div className="relative flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-5">
         <div>
-          <h2 className="text-sm font-semibold text-ink">ย้อนดูการเติบโต</h2>
+          <h2 className="gold-text font-display pb-0.5 text-lg leading-tight font-semibold">ย้อนดูการเติบโต</h2>
           <p className="mt-0.5 text-[13px] text-ink-subtle">
             {formatDate(frames[0].key)} – {formatDate(frames[maxT].end)} · ทีละสัปดาห์
           </p>
@@ -439,7 +447,7 @@ export default function ReplayCard({ frames, branchInfo, onClose }) {
             ref={playRef}
             type="button"
             onClick={togglePlay}
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-chart px-3 text-[13px] font-medium text-white transition-[background-color,scale] hover:bg-chart/90 active:scale-[0.97]"
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-chart px-3 text-[13px] font-medium text-on-chart transition-[background-color,scale] hover:bg-chart/90 active:scale-[0.97]"
           >
             <span key={playing ? "pause" : t >= maxT ? "replay" : "play"} className="inline-flex animate-pop">
               {playing ? <PauseIcon /> : t >= maxT ? <ReplayIcon /> : <PlayIcon />}
@@ -456,13 +464,15 @@ export default function ReplayCard({ frames, branchInfo, onClose }) {
           </button>
         </div>
       </div>
+      </div>
+      <div className="gold-rule !opacity-100" aria-hidden="true" />
 
-      <div className="mt-3 grid grid-cols-2 gap-px border-y border-line bg-line sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-px border-b border-line bg-line sm:grid-cols-4">
         <div className="bg-surface px-4 py-3 sm:px-5">
           <p className="text-xs font-medium text-ink-subtle">
             สัปดาห์ {i + 1}/{frames.length}
           </p>
-          <p className="mt-0.5 text-2xl font-semibold tracking-tight text-chart tabular-nums">{formatDate(frame.end)}</p>
+          <p className="mt-0.5 w-fit text-2xl font-semibold tracking-tight tabular-nums"><span className="gold-text-data">{formatDate(frame.end)}</span></p>
         </div>
         {kpis.map((k) => (
           <div key={k.label} className="bg-surface px-4 py-3 sm:px-5">

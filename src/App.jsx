@@ -6,7 +6,9 @@ import TopProductsCard from "./components/TopProductsCard.jsx";
 import ReplayCard from "./components/ReplayCard.jsx";
 import TracePanel from "./components/TracePanel.jsx";
 import ThemeToggle from "./components/ThemeToggle.jsx";
-import { Card, CalendarIcon, Collapsible, Segmented, Select, Skeleton, StoreIcon } from "./components/ui.jsx";
+import { BeanIcon, Card, CalendarIcon, Collapsible, CupIcon, DripperIcon, Segmented, Select, Skeleton, StoreIcon } from "./components/ui.jsx";
+import Logo from "./components/Logo.jsx";
+import MarbleArt from "./components/MarbleArt.jsx";
 import Lab2Page from "./lab2/Lab2Page.jsx";
 import CustomersView from "./components/CustomersView.jsx";
 import {
@@ -226,7 +228,7 @@ function Dashboard({ data }) {
             onClick={openReplay}
             className="group ml-auto inline-flex h-8 animate-fade-in items-center gap-2 rounded-lg border border-line-strong bg-surface pr-3 pl-2 text-[13px] font-medium text-ink shadow-[0_1px_0_0_rgb(0_0_0/0.05)] transition-[background-color,scale] hover:bg-surface-hover active:scale-[0.97]"
           >
-            <span className="inline-flex size-5 items-center justify-center rounded-full bg-chart text-white transition-transform group-hover:scale-110">
+            <span className="inline-flex size-5 items-center justify-center rounded-full bg-chart text-on-chart transition-transform group-hover:scale-110">
               <svg viewBox="0 0 20 20" className="ml-px size-3" fill="currentColor" aria-hidden="true">
                 <path d="M6 4.2v11.6a.6.6 0 0 0 .9.5l9.2-5.8a.6.6 0 0 0 0-1L6.9 3.7a.6.6 0 0 0-.9.5Z" />
               </svg>
@@ -287,9 +289,9 @@ function Dashboard({ data }) {
 }
 
 const TABS = [
-  { value: "overview", label: "ภาพรวม" },
-  { value: "customers", label: "ลูกค้า" },
-  { value: "lab2", label: "Lab 2.2 · ซ่อมกราฟ" },
+  { value: "overview", label: "ภาพรวม", icon: BeanIcon },
+  { value: "customers", label: "ลูกค้า", icon: CupIcon },
+  { value: "lab2", label: "Lab 2.2 · ซ่อมกราฟ", icon: DripperIcon },
 ];
 
 // จำแท็บไว้ใน URL (#customers, #lab2) รีเฟรชแล้วยังอยู่แท็บเดิม
@@ -315,15 +317,26 @@ export default function App() {
   return (
     <main className="min-h-screen px-4 py-6 sm:px-6 lg:py-8">
       <div className="mx-auto max-w-6xl space-y-4">
-        {/* มือถือ: ชื่อ + สวิตช์ธีมอยู่แถวเดียวกัน วันที่ลงไปแถวล่าง · จอกว้าง: ทุกอย่างแถวเดียว สวิตช์ชิดขวา */}
-        <header className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <h1 className="mr-auto text-xl font-bold text-ink">บ้านบรู Dashboard</h1>
-          {data.status === "ready" && (
-            <p className="order-last w-full text-[13px] text-ink-subtle sm:order-none sm:w-auto">
-              ข้อมูลล่าสุด {formatDate(data.last)} · {data.branches.length} สาขา
-            </p>
-          )}
-          <ThemeToggle />
+        {/* ภาพหินอ่อนดำ-ทองในกรอบทอง (มืดเสมอทั้งสองโหมด เหมือนภาพแขวนผนัง)
+            ตรา + ชื่อซ้าย, ข้อมูลล่าสุด + สวิตช์ธีมขวา · มือถือ: วันที่ลงไปแถวล่าง */}
+        <header className="gold-frame relative overflow-hidden rounded-[var(--radius-card)] bg-[#070707] shadow-[0_12px_32px_-18px_rgb(0_0_0/0.8)]">
+          <MarbleArt className="absolute inset-0 size-full" />
+          {/* เงาดำทางซ้ายให้ตรากับชื่ออ่านได้ทุกความกว้าง (จอแคบภาพถูกครอปจนริบบิ้นทองมาอยู่หลังชื่อ) */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-y-0 left-0 w-full bg-gradient-to-r from-[#070707]/95 via-[#070707]/70 via-45% to-transparent sm:w-3/5"
+          />
+          <div className="relative flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-7 sm:px-7 sm:py-10">
+            <div className="mr-auto">
+              <Logo />
+            </div>
+            {data.status === "ready" && (
+              <p className="order-last w-fit rounded-full bg-[#0a0a0a]/75 px-3 py-1.5 text-[13px] text-[#cfc8ba] ring-1 ring-[#d2a958]/35 sm:order-none">
+                ข้อมูลล่าสุด <span className="font-medium text-[#f4eddc]">{formatDate(data.last)}</span> · {data.branches.length} สาขา
+              </p>
+            )}
+            <ThemeToggle />
+          </div>
         </header>
 
         {data.status === "loading" && <LoadingState />}

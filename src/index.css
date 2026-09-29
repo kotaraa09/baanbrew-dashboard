@@ -1,35 +1,46 @@
 @import "tailwindcss";
 
-/* Tokens อ้างอิงแนวทาง analytics มาตรฐาน (Shopify Admin / Polaris):
-   พื้นเทาอ่อน, การ์ดขาว, ตัวอักษรเทาเข้ม, สีกราฟหลักสีเดียว, เขียว/แดงใช้กับการเปลี่ยนแปลงเท่านั้น */
+/* Tokens: "Black & Gold" ดำด้านเรียบ ๆ แบบมินิมอล ทองใช้น้อยที่สุด
+   ดำ/เทาเป็นกลาง (ไม่อมน้ำตาล), ทองมีแค่: ตรา, เส้นกราฟหลัก, สถานะที่เลือก, ปุ่มหลัก, เส้นทองบาง ๆ ใต้หัวหน้า
+   เขียว/แดงยังใช้กับการเปลี่ยนแปลงเท่านั้น
+   ค่าเริ่มต้น (ใน @theme) คือโหมดสว่าง (ขาวแบบหินอ่อน) ส่วนโหมดมืดอยู่ใต้ [data-theme="dark"] */
 @theme {
   --font-sans: "Anuphan", "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+  --font-display: "Trirong", "Anuphan", "Noto Serif Thai", serif; /* เฉพาะชื่อแบรนด์ */
 
-  --color-canvas: #f1f1f1;
+  --color-canvas: #f4f3f0;
   --color-surface: #ffffff;
-  --color-surface-hover: #f7f7f7;
-  --color-surface-selected: #f3f3f3;
-  --color-line: #e3e3e3;
-  --color-line-strong: #cccccc;
+  --color-surface-hover: #f8f7f5;
+  --color-surface-selected: #f2f1ed;
+  --color-line: #e6e4df;
+  --color-line-strong: #cfccc5;
 
-  --color-ink: #303030;
-  --color-ink-subtle: #616161;
-  --color-ink-muted: #6b6b6b;
+  --color-ink: #141414;
+  --color-ink-subtle: #5f5d58;
+  --color-ink-muted: #6d6b66;
 
-  --color-chart: #1b6fd1;
-  --color-chart-soft: #6592cf; /* ≥3:1 บนพื้นขาว */
-  --color-bar-muted: #8a8a8a;
-  --color-chart-bar: #3d85d8;
+  /* ทองโบราณ: บนพื้นขาวต้องเข้มพอให้เส้นกราฟและข้อความผ่าน contrast */
+  --color-chart: #94702a;
+  --color-chart-soft: #a88a50; /* ≥3:1 บนพื้นขาว */
+  --color-bar-muted: #dcd9d2;
+  --color-chart-bar: #b08a3e;
+  --color-on-chart: #1d1407; /* ตัวอักษรบนปุ่ม/แถบทอง (ทองโลหะสว่าง จึงใช้ตัวเข้มทั้งสองโหมด) */
 
-  --color-up: #0c5132;
-  --color-up-bg: #cdfee1;
-  --color-down: #8e0b21;
-  --color-down-bg: #fedad9;
+  --color-up: #1d5a34;
+  --color-up-bg: #e1efe3;
+  --color-down: #8e2b1e;
+  --color-down-bg: #f7e1dc;
 
-  --color-water: #d3e3f5; /* แม่น้ำบนแผนที่ Replay (ตกแต่ง ไม่ใช่ข้อมูล) */
-  --color-water-ink: #5b7fa8;
+  --color-water: #e1e4e6; /* แม่น้ำบนแผนที่ Replay (ตกแต่ง ไม่ใช่ข้อมูล) */
+  --color-water-ink: #6d777d;
 
-  --shadow-card: 0 1px 0 0 rgb(26 26 26 / 0.07), 0 1px 2px 0 rgb(26 26 26 / 0.08);
+  /* ทองเปลวของตรา + สีชื่อแบรนด์ (สว่าง: ชื่อสีดำ ตราทองเข้ม · มืด: ทั้งคู่เป็นทอง) */
+  --color-gold: #b08d45;
+  --color-gold-hi: #d9bd7c;
+  --color-gold-lo: #7a5a22;
+  --color-wordmark: #141414;
+
+  --shadow-card: 0 1px 0 0 rgb(20 20 20 / 0.05), 0 1px 3px 0 rgb(20 20 20 / 0.07);
   --radius-card: 12px;
 
   /* Motion: ease-out ตัวเดียวทั้งระบบ, ของเข้ายาวกว่าของออก, ไม่เด้ง */
@@ -50,35 +61,42 @@
 }
 
 
-/* โหมดมืด: เปลี่ยนแค่ token ส่วน component ใช้ var(--color-*) อยู่แล้วจึงเปลี่ยนตามเอง
-   ค่าเริ่มต้นตามระบบ (สคริปต์ใน index.html ตั้ง data-theme ก่อน render) ผู้ใช้สลับเองได้ที่ ThemeToggle */
-:root[data-theme="dark"] {
+/* โหมดมืด: ธีมหลักของแบรนด์ ดำด้าน + ทอง (ค่าเริ่มต้นเมื่อยังไม่เคยเลือก ดูสคริปต์ใน index.html)
+   เปลี่ยนแค่ token ส่วน component ใช้ var(--color-*) อยู่แล้วจึงเปลี่ยนตามเอง */
+:root[data-theme="dark"],
+.theme-dark { /* .theme-dark = ส่วนที่มืดเสมอแม้อยู่ในโหมดสว่าง (แถบหินอ่อนของ Replay) */
   color-scheme: dark;
-  --color-canvas: #161616;
-  --color-surface: #222222;
-  --color-surface-hover: #2a2a2a;
-  --color-surface-selected: #2e2e2e;
-  --color-line: #333333;
-  --color-line-strong: #474747;
+  --color-canvas: #0a0a0a;
+  --color-surface: #141414;
+  --color-surface-hover: #1b1b1b;
+  --color-surface-selected: #1f1f1f;
+  --color-line: #242424;
+  --color-line-strong: #383838;
 
-  --color-ink: #ececec;
-  --color-ink-subtle: #adadad;
-  --color-ink-muted: #9c9c9c;
+  --color-ink: #f4f2ee;
+  --color-ink-subtle: #a9a7a2;
+  --color-ink-muted: #8f8d88;
 
-  --color-chart: #4a90e2;
-  --color-chart-soft: #7ba3d9;
-  --color-bar-muted: #6e6e6e;
-  --color-chart-bar: #4a8fe0;
+  --color-chart: #d4b26a;
+  --color-chart-soft: #8a7654;
+  --color-bar-muted: #3a3a3a;
+  --color-chart-bar: #c9a55a;
+  --color-on-chart: #1d1407;
 
-  --color-up: #86e0ab;
-  --color-up-bg: #113a25;
-  --color-down: #ffa3a6;
-  --color-down-bg: #4a161c;
+  --color-up: #8fcf9f;
+  --color-up-bg: #13261a;
+  --color-down: #e89a8f;
+  --color-down-bg: #2e1512;
 
-  --color-water: #1f3349;
-  --color-water-ink: #7fa4cd;
+  --color-water: #1a1d1f;
+  --color-water-ink: #6f7a80;
 
-  --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.06), 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --color-gold: #d9b76e;
+  --color-gold-hi: #f6e3ad;
+  --color-gold-lo: #8f6b2c;
+  --color-wordmark: #d9b76e;
+
+  --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.06), 0 1px 2px 0 rgb(0 0 0 / 0.5);
 }
 :root { color-scheme: light; }
 html { transition: background-color 0.5s ease; }
@@ -176,6 +194,121 @@ html { transition: background-color 0.5s ease; }
 .dn-in:checked + .dn-switch .dn-orb{left:calc(100% - var(--knob) - var(--pad));filter:drop-shadow(0 0 9px rgba(214,228,250,.6))}
 .dn-in:checked + .dn-switch .dn-disc{fill:#E9F0FB}
 .dn-in:checked + .dn-switch .dn-shade{transform:rotate(180deg)}
+
+/* ---------- ทองโลหะ ----------
+   ทองแบนสีเดียวดูเหมือนสีน้ำตาล ทองที่ "ประกาย" ต้องมีช่วงมืด-สว่างสลับกันแบบแสงสะท้อนบนโลหะ
+   ใช้ชุดสีเดียวกันทั้งระบบ: ตัวหนังสือชื่อแบรนด์, กรอบภาพหัวหน้า, เส้นใต้แท็บ, ปุ่มหลัก, แท่งกราฟ, เส้นกราฟ (SVG) */
+:root {
+  --gm-deep: #6e4c1a;
+  --gm-dark: #8f6726;
+  --gm-mid: #d2a958;
+  --gm-light: #f3dc9c;
+  --gm-shine: #fff6d6;
+  --gold-metal: linear-gradient(118deg, var(--gm-dark) 0%, var(--gm-mid) 18%, var(--gm-shine) 30%, var(--gm-mid) 42%, var(--gm-deep) 58%, var(--gm-mid) 76%, var(--gm-light) 90%, var(--gm-dark) 100%);
+  /* สำหรับพื้นที่ที่มีตัวอักษรทับ: ช่วงมืดสุดตัดออก ตัวอักษรเข้มจึงอ่านได้ทุกจุด */
+  --gold-fill: linear-gradient(118deg, #b88a3c 0%, #e7c77f 28%, #f8e7b4 40%, #d3a95a 58%, #b3843a 78%, #e2c27a 100%);
+  --gold-hairline: linear-gradient(90deg, transparent, var(--gm-mid) 20%, var(--gm-shine) 50%, var(--gm-mid) 80%, transparent);
+
+  /* ทองของกราฟ (เส้น/แท่ง) บนพื้นขาวต้องเข้มกว่า ไม่งั้นช่วงสว่างจะหายไปกับพื้น */
+  --lg-dark: #6e4c1a;
+  --lg-mid: #94702a;
+  --lg-light: #c29b4a;
+  --lg-shine: #d8b66a;
+}
+:root[data-theme="dark"],
+.theme-dark {
+  --lg-dark: var(--gm-dark);
+  --lg-mid: var(--gm-mid);
+  --lg-light: var(--gm-light);
+  --lg-shine: var(--gm-shine);
+}
+
+/* ชื่อแบรนด์: ทองโลหะ + แสงวิ่งผ่านช้า ๆ ทุก 8 วินาที */
+@keyframes gold-sheen {
+  0%, 55% { background-position: 100% 0; }
+  100% { background-position: 0% 0; }
+}
+.gold-text {
+  background: var(--gold-metal);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gold-sheen 8s var(--ease-out) infinite;
+}
+
+/* ตัวเลข/วันที่สีทองบนการ์ด: ใช้ทองของกราฟ (--lg-*) ซึ่งเข้มขึ้นในโหมดสว่าง ช่วงสว่างสุดจึงไม่หายไปกับพื้นขาว */
+.gold-text-data {
+  background: linear-gradient(118deg, var(--lg-dark) 0%, var(--lg-mid) 28%, var(--lg-light) 42%, var(--lg-mid) 58%, var(--lg-dark) 80%, var(--lg-mid) 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gold-sheen 8s var(--ease-out) infinite;
+}
+
+/* ทุกอย่างที่เคยเป็นทองแบน (ปุ่มหลัก, ป้ายเลข, หัวเล่น, แท่ง) กลายเป็นทองโลหะ
+   ใส่ที่ class ของ Tailwind ตรง ๆ จึงไม่ต้องไล่แก้ทีละ component (bg-chart/10 เป็นคนละ class ไม่โดน) */
+.bg-chart,
+.bg-chart-bar {
+  background-image: var(--gold-fill);
+}
+.bg-chart:hover,
+.bg-chart-bar:hover {
+  filter: brightness(1.06);
+}
+
+/* เส้นทองเส้นเดียวใต้ภาพหัวหน้า และขอบบนของการ์ด */
+.gold-rule {
+  height: 1px;
+  background: var(--gold-hairline);
+  opacity: 0.7;
+}
+.card-sheen {
+  background: var(--gold-hairline) top / 100% 1px no-repeat, var(--color-surface);
+}
+:root:not([data-theme="dark"]) .card-sheen {
+  background: linear-gradient(90deg, transparent, rgb(176 138 62 / 0.55) 50%, transparent) top / 100% 1px no-repeat, var(--color-surface);
+}
+
+/* กรอบทองรอบภาพหัวหน้า (เหมือนกรอบรูปภาพศิลปะบนผนัง) */
+.gold-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: var(--gold-metal);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* เส้นกราฟหลักเรืองแสงเล็กน้อยบนพื้นดำ */
+:root[data-theme="dark"] .gold-line {
+  filter: drop-shadow(0 0 5px rgb(230 190 110 / 0.35));
+}
+
+/* ประกายทองบนภาพหินอ่อน: กระพริบช้า ๆ สลับกัน */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+.twinkle { animation: twinkle 3.6s ease-in-out infinite; }
+
+/* โลโก้: แสงวาบบนทองเปลวครั้งเดียวตอนเปิดหน้า และอีกครั้งเมื่อชี้ */
+@keyframes logo-glint {
+  from { transform: translateX(-40px) skewX(-20deg); }
+  to { transform: translateX(60px) skewX(-20deg); }
+}
+.logo-glint { transform: translateX(-40px) skewX(-20deg); animation: logo-glint 1100ms var(--ease-out) 500ms 1 both; }
+@keyframes logo-glint-again {
+  from { transform: translateX(-40px) skewX(-20deg); }
+  to { transform: translateX(60px) skewX(-20deg); }
+}
+/* ชื่อ keyframes ต่างกัน เบราว์เซอร์จึงเล่นใหม่ทุกครั้งที่ชี้ */
+.logo:hover .logo-glint { animation: logo-glint-again 900ms var(--ease-out) 1 both; }
 
 /* ผู้ใช้ตั้งค่าลดการเคลื่อนไหว: ปิดทุก animation/transition ในที่เดียว (ยังจบสถานะปลายทางเหมือนเดิม)
    ไม่ต้องเขียน reduced-motion แยกตามแต่ละ component อีก */

@@ -445,7 +445,7 @@ export default function TracePanel({ spec, rows, onClose }) {
             type="button"
             onClick={download}
             disabled={!trace.rows.length}
-            className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-chart text-[13px] font-medium text-white transition-[background-color,scale] hover:bg-chart/90 active:scale-[0.97] disabled:cursor-not-allowed disabled:bg-bar-muted"
+            className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-chart text-[13px] font-medium text-on-chart transition-[background-color,scale] hover:bg-chart/90 active:scale-[0.97] disabled:cursor-not-allowed disabled:bg-bar-muted"
           >
             <DownloadIcon />
             ดาวน์โหลด {formatNumber(trace.rows.length)} แถวนี้ (.csv)
