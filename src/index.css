@@ -115,6 +115,16 @@ html { transition: background-color 0.5s ease; }
   }
 }
 
+/* Dropdown (Select): เปิดจางเข้า + ขยายจากมุมบนซ้าย, ปิดจางออกเร็วกว่า */
+@keyframes dropdown-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+}
+@keyframes dropdown-out {
+  to { opacity: 0; transform: translateY(-2px) scale(0.98); }
+}
+.dropdown-in { animation: dropdown-in 180ms var(--ease-out); }
+.dropdown-out { animation: dropdown-out 120ms ease-in forwards; }
+
 /* Recharts: เอาเส้น focus สี่เหลี่ยมของ svg ออก เพราะมีเส้น focus ของปุ่มแทนแล้ว */
 .recharts-surface:focus,
 .recharts-wrapper:focus {

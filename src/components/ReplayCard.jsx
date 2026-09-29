@@ -454,11 +454,12 @@ export default function ReplayCard({ frames, branchInfo, onClose }) {
             </span>
             {playing ? "หยุด" : t >= maxT ? "เล่นอีกครั้ง" : "เล่น"}
           </button>
+          {/* ปุ่มปิดอยู่บนหินอ่อน: พื้นดำทึบ + ขอบทอง ไม่งั้นกลืนไปกับลายหิน */}
           <button
             type="button"
             onClick={onClose}
             aria-label="ปิด"
-            className="inline-flex size-8 items-center justify-center rounded-lg text-ink-subtle transition-colors hover:bg-surface-hover hover:text-ink"
+            className="inline-flex size-8 items-center justify-center rounded-full bg-black/60 text-[#f4eddc] ring-1 ring-[#d2a958]/50 transition-[background-color,box-shadow,scale] hover:bg-black/80 hover:ring-[#d2a958] active:scale-[0.95]"
           >
             <CloseIcon />
           </button>

@@ -1,7 +1,6 @@
 // แท็บลูกค้าแบบเล่าเรื่อง (infographic): 1 ตอน = 1 ข้อความ + 1 ภาพ อ่านจากบนลงล่าง
 // ทุกตัวเลขและประโยคคำนวณจาก customerView() ไม่มีตัวเลขตายตัว
-import { useEffect, useRef, useState } from "react";
-import { prefersReducedMotion, useTweenedNumber } from "./ui.jsx";
+import { useSeen, useTweenedNumber } from "./ui.jsx";
 import { ACTIVE_DAYS } from "../lib/customerMetrics.js";
 import { formatBaht, formatMonth, formatNumber } from "../lib/metrics.js";
 
@@ -16,19 +15,6 @@ function toHundred(counts) {
   const missing = 100 - out.reduce((s, c) => s + c, 0);
   for (let k = 0; k < missing; k++) out[order[k][1]] += 1;
   return out;
-}
-
-// เห็นบนจอแล้วค่อยเล่น (เลื่อนลงมาถึงตอนไหน ตอนนั้นค่อยนับเลข/ขึ้นภาพ) · ลดการเคลื่อนไหว = แสดงเลย
-function useSeen() {
-  const ref = useRef(null);
-  const [seen, setSeen] = useState(() => prefersReducedMotion() || typeof IntersectionObserver === "undefined");
-  useEffect(() => {
-    if (seen || !ref.current) return;
-    const io = new IntersectionObserver(([e]) => e.isIntersecting && setSeen(true), { threshold: 0.3 });
-    io.observe(ref.current);
-    return () => io.disconnect();
-  }, [seen]);
-  return [ref, seen];
 }
 
 function Count({ value, seen, format = formatNumber }) {

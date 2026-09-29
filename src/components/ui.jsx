@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { formatPercent } from "../lib/metrics.js";
 
 // ---------- Motion ----------
@@ -36,6 +36,19 @@ export function useTweenedNumber(value, duration = 600) {
   }, [value, duration]);
 
   return shown;
+}
+
+// เห็นบนจอแล้วค่อยเล่น (เลื่อนลงมาถึงส่วนไหน ส่วนนั้นค่อยขึ้น) · ลดการเคลื่อนไหว = แสดงเลย
+export function useSeen(threshold = 0.3) {
+  const ref = useRef(null);
+  const [seen, setSeen] = useState(() => prefersReducedMotion() || typeof IntersectionObserver === "undefined");
+  useEffect(() => {
+    if (seen || !ref.current) return;
+    const io = new IntersectionObserver(([e]) => e.isIntersecting && setSeen(true), { threshold });
+    io.observe(ref.current);
+    return () => io.disconnect();
+  }, [seen, threshold]);
+  return [ref, seen];
 }
 
 // พื้นที่ที่ยืด/หดความสูงตอนเปิด-ปิด (grid-template-rows 0fr ↔ 1fr) เนื้อหาด้านล่างจึงเลื่อนตามนุ่ม ๆ ไม่กระโดด
@@ -156,6 +169,12 @@ export const ChevronDownIcon = (p) => (
   </Icon>
 );
 
+const CheckIcon = (p) => (
+  <Icon {...p}>
+    <path d="m4.5 10.5 3.5 3.5 7.5-8" />
+  </Icon>
+);
+
 // แว่นขยายบนเส้นข้อมูล = "ดูที่มาของตัวเลข"
 export const TraceIcon = (p) => (
   <Icon {...p}>
@@ -202,26 +221,149 @@ export function CardHeader({ title, subtitle, children }) {
   );
 }
 
-// ---------- Select (native select เพื่อให้ใช้คีย์บอร์ด/มือถือได้ตามมาตรฐาน) ----------
+// ---------- Select ----------
+
+// dropdown ของตัวเอง (native <select> ใส่ animation ตอนเปิดรายการไม่ได้ เพราะเบราว์เซอร์วาดรายการเอง)
+// ใช้แบบ listbox ของ WAI-ARIA: ปุ่มเปิด → รายการรับ focus, ↑/↓/Home/End เลื่อน, Enter/Space เลือก,
+// Esc ปิดแล้วคืน focus ให้ปุ่ม, Tab/คลิกนอกกรอบปิดเฉย ๆ · เปิด: จางเข้า+ขยายจาก 97% · ปิด: จางออกเร็วกว่า
+const CLOSE_MS = 120;
 
 export function Select({ label, icon: LeadIcon, value, onChange, options }) {
+  const [mounted, setMounted] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const [active, setActive] = useState(0);
+  const rootRef = useRef(null);
+  const buttonRef = useRef(null);
+  const listRef = useRef(null);
+  const listId = useId();
+  const open = mounted && !closing;
+  const selectedIndex = Math.max(0, options.findIndex((o) => o.value === value));
+  const current = options[selectedIndex];
+
+  const show = () => {
+    setActive(selectedIndex);
+    setClosing(false);
+    setMounted(true);
+  };
+  const hide = (returnFocus = true) => {
+    if (!mounted) return;
+    setClosing(true);
+    if (returnFocus) buttonRef.current?.focus();
+  };
+  const choose = (i) => {
+    onChange(options[i].value);
+    hide();
+  };
+
+  // จบ animation ปิดแล้วค่อยถอดรายการออก
+  useEffect(() => {
+    if (!closing) return;
+    const t = setTimeout(() => {
+      setMounted(false);
+      setClosing(false);
+    }, CLOSE_MS);
+    return () => clearTimeout(t);
+  }, [closing]);
+
+  useEffect(() => {
+    if (open) listRef.current?.focus();
+  }, [open]);
+
+  // คลิก/แตะนอกกรอบ = ปิด (ไม่ดึง focus กลับ ผู้ใช้กำลังไปที่อื่น)
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e) => !rootRef.current?.contains(e.target) && hide(false);
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [open]);
+
+  useEffect(() => {
+    if (open) listRef.current?.children[active]?.scrollIntoView({ block: "nearest" });
+  }, [open, active]);
+
+  const onButtonKey = (e) => {
+    if (["ArrowDown", "ArrowUp", "Enter", " "].includes(e.key)) {
+      e.preventDefault();
+      show();
+    }
+  };
+  const onListKey = (e) => {
+    const last = options.length - 1;
+    const moves = { ArrowDown: Math.min(last, active + 1), ArrowUp: Math.max(0, active - 1), Home: 0, End: last };
+    if (e.key in moves) {
+      e.preventDefault();
+      setActive(moves[e.key]);
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      choose(active);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      hide();
+    } else if (e.key === "Tab") {
+      hide(false);
+    }
+  };
+
   return (
-    <label className="relative inline-flex items-center">
-      {LeadIcon && <LeadIcon className="pointer-events-none absolute left-2.5 size-4 text-ink-subtle" />}
-      <select
-        aria-label={label}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-8 cursor-pointer appearance-none rounded-lg border border-line-strong bg-surface pr-8 pl-8 text-[13px] font-medium text-ink shadow-[0_1px_0_0_rgb(0_0_0/0.05)] transition-colors hover:bg-surface-hover focus-visible:border-chart"
+    <div ref={rootRef} className="relative inline-flex">
+      <button
+        ref={buttonRef}
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={mounted ? listId : undefined}
+        aria-label={`${label}: ${current?.label ?? ""}`}
+        onClick={() => (open ? hide() : show())}
+        onKeyDown={onButtonKey}
+        className={`relative inline-flex h-8 cursor-pointer items-center rounded-lg border bg-surface pr-8 pl-8 text-[13px] font-medium text-ink shadow-[0_1px_0_0_rgb(0_0_0/0.05)] transition-colors hover:bg-surface-hover ${
+          open ? "border-chart" : "border-line-strong"
+        }`}
       >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDownIcon className="pointer-events-none absolute right-2 size-4 text-ink-subtle" />
-    </label>
+        {LeadIcon && <LeadIcon className="pointer-events-none absolute left-2.5 size-4 text-ink-subtle" />}
+        {current?.label}
+        <ChevronDownIcon
+          className={`pointer-events-none absolute right-2 size-4 text-ink-subtle transition-transform duration-200 ease-[var(--ease-out)] ${
+            open ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {mounted && (
+        <ul
+          ref={listRef}
+          id={listId}
+          role="listbox"
+          tabIndex={-1}
+          aria-label={label}
+          aria-activedescendant={`${listId}-${active}`}
+          onKeyDown={onListKey}
+          className={`absolute top-full left-0 z-30 mt-1.5 max-h-72 min-w-full origin-top-left overflow-auto rounded-lg bg-surface p-1 shadow-[0_8px_28px_rgb(0_0_0/0.18),0_0_0_1px_var(--color-line)] outline-none ${
+            closing ? "dropdown-out" : "dropdown-in"
+          }`}
+        >
+          {options.map((o, i) => {
+            const selected = i === selectedIndex;
+            return (
+              <li
+                key={o.value}
+                id={`${listId}-${i}`}
+                role="option"
+                aria-selected={selected}
+                onMouseEnter={() => setActive(i)}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => choose(i)}
+                className={`flex h-8 cursor-pointer items-center justify-between gap-6 rounded-md px-2.5 text-[13px] whitespace-nowrap transition-colors duration-100 ${
+                  i === active ? "bg-surface-hover text-ink" : "text-ink-subtle"
+                } ${selected ? "font-medium text-ink" : ""}`}
+              >
+                {o.label}
+                <CheckIcon className={`size-3.5 text-chart ${selected ? "" : "invisible"}`} />
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }
 
