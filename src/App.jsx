@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
 import TrendCard from "./components/TrendCard.jsx";
 import BranchCard from "./components/BranchCard.jsx";
@@ -6,11 +6,13 @@ import TopProductsCard from "./components/TopProductsCard.jsx";
 import ReplayCard from "./components/ReplayCard.jsx";
 import TracePanel from "./components/TracePanel.jsx";
 import ThemeToggle from "./components/ThemeToggle.jsx";
-import { BeanIcon, Card, CalendarIcon, Collapsible, CupIcon, DripperIcon, Segmented, Select, Skeleton, StoreIcon } from "./components/ui.jsx";
+import { BeanIcon, Card, CalendarIcon, Collapsible, CupIcon, DripperIcon, LiveIcon, Segmented, Select, ShieldIcon, Skeleton, StoreIcon } from "./components/ui.jsx";
 import Logo from "./components/Logo.jsx";
 import MarbleArt from "./components/MarbleArt.jsx";
 import Lab2Page from "./lab2/Lab2Page.jsx";
 import CustomersView from "./components/CustomersView.jsx";
+// Lab 3 โหลดแบบ lazy: Firebase SDK จะถูกดาวน์โหลดเมื่อเปิดแท็บสด/ทดสอบ Rules เท่านั้น
+const Lab3Page = lazy(() => import("./lab3/Lab3Page.jsx"));
 import {
   prepareRows,
   computeKpis,
@@ -292,7 +294,11 @@ const TABS = [
   { value: "overview", label: "ภาพรวม", icon: BeanIcon },
   { value: "customers", label: "ลูกค้า", icon: CupIcon },
   { value: "lab2", label: "Lab 2.2 · ซ่อมกราฟ", icon: DripperIcon },
+  { value: "live", label: "สด · Firestore", icon: LiveIcon },
+  { value: "rules", label: "ทดสอบ Rules", icon: ShieldIcon },
 ];
+// แท็บ Lab 3 อ่านจาก Firestore ไม่ได้ใช้ sales.csv จึงแสดงได้แม้โหลด CSV ไม่สำเร็จ
+const LAB3_TABS = ["live", "rules"];
 
 // จำแท็บไว้ใน URL (#customers, #lab2) รีเฟรชแล้วยังอยู่แท็บเดิม
 function useTab() {
@@ -313,6 +319,21 @@ function useTab() {
 export default function App() {
   const data = useDashboardData();
   const [tab, setTab] = useTab();
+  // จอแคบแถบแท็บเลื่อนได้ เปิดลิงก์ #rules ตรง ๆ แท็บที่เลือกต้องไม่ซ่อนอยู่นอกจอ
+  const tabBarRef = useRef(null);
+  const tabBarScrolled = useRef(false);
+  useEffect(() => {
+    const bar = tabBarRef.current;
+    const active = bar?.querySelector('[aria-checked="true"]');
+    if (!active) return;
+    const b = bar.getBoundingClientRect();
+    const a = active.getBoundingClientRect();
+    if (a.left < b.left || a.right > b.right) {
+      // ตอนเปิดหน้าเลื่อนทันที (ยังไม่มีใครดูอยู่) ตอนกดเปลี่ยนแท็บค่อยเลื่อนแบบนุ่ม
+      bar.scrollBy({ left: a.left - b.left - 16, behavior: tabBarScrolled.current ? "smooth" : "instant" });
+    }
+    tabBarScrolled.current = true;
+  }, [tab]);
 
   return (
     <main className="min-h-screen px-4 py-6 sm:px-6 lg:py-8">
@@ -339,11 +360,18 @@ export default function App() {
           </div>
         </header>
 
-        {data.status === "loading" && <LoadingState />}
-        {data.status === "error" && <ErrorState message={data.message} />}
-        <Segmented label="หน้า" value={tab} onChange={setTab} options={TABS} />
+        {!LAB3_TABS.includes(tab) && data.status === "loading" && <LoadingState />}
+        {!LAB3_TABS.includes(tab) && data.status === "error" && <ErrorState message={data.message} />}
+        {/* 5 แท็บกว้างเกินจอมือถือ ให้เลื่อนแถบแท็บแนวนอนแทนที่จะดันทั้งหน้า */}
+        <div ref={tabBarRef} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+          <Segmented label="หน้า" value={tab} onChange={setTab} options={TABS} />
+        </div>
 
-        {data.status === "ready" &&
+        {LAB3_TABS.includes(tab) ? (
+          <Suspense fallback={<Skeleton className="h-40 rounded-[var(--radius-card)] bg-surface" />}>
+            <Lab3Page view={tab} />
+          </Suspense>
+        ) : data.status === "ready" &&
           (tab === "lab2" ? (
             <Lab2Page rows={data.rows} products={data.products} />
           ) : tab === "customers" ? (

@@ -163,6 +163,22 @@ export const DripperIcon = (p) => (
   </Icon>
 );
 
+// จุดสัญญาณกับคลื่น = ข้อมูลสดจาก Firestore (Lab 3)
+export const LiveIcon = (p) => (
+  <Icon {...p}>
+    <circle cx="10" cy="10" r="1.75" />
+    <path d="M6.5 6.5a5 5 0 0 0 0 7M13.5 6.5a5 5 0 0 1 0 7M4 4a8.5 8.5 0 0 0 0 12M16 4a8.5 8.5 0 0 1 0 12" />
+  </Icon>
+);
+
+// โล่ = ทดสอบ Security Rules (Lab 3.3)
+export const ShieldIcon = (p) => (
+  <Icon {...p}>
+    <path d="M10 2.75 4 5v4.5c0 3.8 2.6 6.6 6 7.75 3.4-1.15 6-3.95 6-7.75V5Z" />
+    <path d="m7.5 10 1.75 1.75L12.75 8" />
+  </Icon>
+);
+
 export const ChevronDownIcon = (p) => (
   <Icon {...p}>
     <path d="m6 8 4 4 4-4" />
@@ -408,7 +424,7 @@ export function Segmented({ label, value, onChange, options }) {
             aria-checked={active}
             disabled={o.disabled}
             onClick={() => onChange(o.value)}
-            className={`relative inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors duration-200 disabled:cursor-not-allowed disabled:text-ink-muted/50 ${
+            className={`relative inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 text-xs font-medium transition-colors duration-200 disabled:cursor-not-allowed disabled:text-ink-muted/50 ${
               active ? "text-ink" : "text-ink-subtle hover:text-ink"
             }`}
           >
