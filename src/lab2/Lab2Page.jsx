@@ -1,6 +1,26 @@
 import * as Bad from "./BadCharts.jsx";
 import * as Fixed from "./FixedCharts.jsx";
-import { useSeen } from "../components/ui.jsx";
+import { startTransition, useEffect, useRef, useState } from "react";
+import { Skeleton, useSeen } from "../components/ui.jsx";
+
+// วาดกราฟเมื่อโจทย์เลื่อนเข้ามาใกล้จอ (ก่อนถึงจอ 400px) แทนการวาดครบ 10 กราฟตอนเปิดแท็บ
+// กราฟ 3 "ก่อนซ่อม" ตั้งใจให้มี 538 จุดกับป้ายวันที่ 538 อัน (ห้ามแก้) จึงหนักที่สุด ไม่ควรวาดก่อนเลื่อนไปถึง
+// แยกจาก useSeen เพราะ useSeen ใช้กับ animation และแสดงทันทีเมื่อผู้ใช้ปิด animation ไว้
+function useNearView(margin = "400px") {
+  const ref = useRef(null);
+  const [near, setNear] = useState(typeof IntersectionObserver === "undefined");
+  useEffect(() => {
+    if (near || !ref.current) return;
+    const io = new IntersectionObserver(
+      // startTransition: วาดกราฟเป็นงานรอง ไม่บล็อกการเลื่อนหน้าหรือการกดปุ่ม
+      ([e]) => e.isIntersecting && startTransition(() => setNear(true)),
+      { rootMargin: `${margin} 0px` }
+    );
+    io.observe(ref.current);
+    return () => io.disconnect();
+  }, [near, margin]);
+  return [ref, near];
+}
 
 // โจทย์ของแต่ละกราฟ: คำถามทางธุรกิจที่กราฟต้องตอบ + คำถามนำให้วิจารณ์
 const CASES = [
@@ -46,6 +66,7 @@ function Placeholder({ n }) {
 // ฝั่ง "หลังซ่อม" ตามมาช้ากว่า "ก่อนซ่อม" นิดหนึ่ง ให้อ่านเป็นลำดับ ก่อน → หลัง
 function CaseSection({ c, index, rows, products }) {
   const [ref, seen] = useSeen(0.15);
+  const [nearRef, near] = useNearView();
   const BadC = Bad[`BadChart${c.n}`];
   const FixC = Fixed[`FixedChart${c.n}`];
   const reveal = (delay) => ({
@@ -72,17 +93,17 @@ function CaseSection({ c, index, rows, products }) {
       <ul className="mt-1 list-disc pl-5 text-sm text-ink-subtle">
         {c.probe.map((p) => <li key={p}>{p}</li>)}
       </ul>
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div ref={nearRef} className="mt-4 grid gap-4 lg:grid-cols-2">
         <div className={before.className} style={before.style}>
           <div className="mb-1 text-sm font-semibold text-down">ก่อนซ่อม</div>
           <div className="h-80 overflow-hidden rounded-lg bg-canvas p-2">
-            <BadC rows={rows} products={products} />
+            {near ? <BadC rows={rows} products={products} /> : <Skeleton className="size-full" />}
           </div>
         </div>
         <div className={after.className} style={after.style}>
           <div className="mb-1 text-sm font-semibold text-up">หลังซ่อม</div>
           <div className="h-80 overflow-hidden rounded-lg bg-canvas p-2">
-            {FixC ? <FixC rows={rows} products={products} /> : <Placeholder n={c.n} />}
+            {!near ? <Skeleton className="size-full" /> : FixC ? <FixC rows={rows} products={products} /> : <Placeholder n={c.n} />}
           </div>
         </div>
       </div>

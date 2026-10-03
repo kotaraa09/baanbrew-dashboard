@@ -49,15 +49,20 @@ export function branchPerformance(rows) {
 
 /** ยอดขายรายสัปดาห์ (เริ่มวันจันทร์) ตัดสัปดาห์ที่มีข้อมูลไม่ครบ 7 วันออก */
 export function weeklyRevenue(rows) {
+  // รวมยอดรายวันก่อน (538 วัน) แล้วค่อยหาวันจันทร์ของแต่ละวัน
+  // ไม่สร้าง Date ทีละแถว (5 หมื่นกว่าแถว) ซึ่งช้ากว่าราว 10 เท่า ผลลัพธ์เหมือนเดิม
+  const byDate = new Map();
+  for (const r of rows) byDate.set(r.date, (byDate.get(r.date) ?? 0) + r.revenue);
+
   const map = new Map();
-  for (const r of rows) {
-    const d = new Date(r.date + "T00:00:00");
+  for (const [date, revenue] of byDate) {
+    const d = new Date(date + "T00:00:00");
     const monday = new Date(d);
     monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
     const key = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, "0")}-${String(monday.getDate()).padStart(2, "0")}`;
     const cur = map.get(key) ?? { week: key, revenue: 0, days: new Set() };
-    cur.revenue += r.revenue;
-    cur.days.add(r.date);
+    cur.revenue += revenue;
+    cur.days.add(date);
     map.set(key, cur);
   }
   return [...map.values()]

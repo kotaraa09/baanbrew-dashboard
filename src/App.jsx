@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
 import TrendCard from "./components/TrendCard.jsx";
 import BranchCard from "./components/BranchCard.jsx";
@@ -319,6 +319,9 @@ function useTab() {
 export default function App() {
   const data = useDashboardData();
   const [tab, setTab] = useTab();
+  // แถบแท็บเปลี่ยนทันที ส่วนเนื้อหาของแท็บ render ตามหลังแบบขัดจังหวะได้
+  // (แท็บ Lab 2.2 มี 10 กราฟ ถ้า render พร้อมกดจะค้างจนกว่าจะวาดเสร็จ)
+  const page = useDeferredValue(tab);
   // จอแคบแถบแท็บเลื่อนได้ เปิดลิงก์ #rules ตรง ๆ แท็บที่เลือกต้องไม่ซ่อนอยู่นอกจอ
   const tabBarRef = useRef(null);
   const tabBarScrolled = useRef(false);
@@ -360,21 +363,21 @@ export default function App() {
           </div>
         </header>
 
-        {!LAB3_TABS.includes(tab) && data.status === "loading" && <LoadingState />}
-        {!LAB3_TABS.includes(tab) && data.status === "error" && <ErrorState message={data.message} />}
+        {!LAB3_TABS.includes(page) && data.status === "loading" && <LoadingState />}
+        {!LAB3_TABS.includes(page) && data.status === "error" && <ErrorState message={data.message} />}
         {/* 5 แท็บกว้างเกินจอมือถือ ให้เลื่อนแถบแท็บแนวนอนแทนที่จะดันทั้งหน้า */}
         <div ref={tabBarRef} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <Segmented label="หน้า" value={tab} onChange={setTab} options={TABS} />
         </div>
 
-        {LAB3_TABS.includes(tab) ? (
+        {LAB3_TABS.includes(page) ? (
           <Suspense fallback={<Skeleton className="h-40 rounded-[var(--radius-card)] bg-surface" />}>
-            <Lab3Page view={tab} />
+            <Lab3Page view={page} />
           </Suspense>
         ) : data.status === "ready" &&
-          (tab === "lab2" ? (
+          (page === "lab2" ? (
             <Lab2Page rows={data.rows} products={data.products} />
-          ) : tab === "customers" ? (
+          ) : page === "customers" ? (
             <CustomersView data={data} />
           ) : (
             <Dashboard data={data} />
