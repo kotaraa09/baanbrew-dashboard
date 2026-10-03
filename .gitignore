@@ -6,3 +6,9 @@ dist
 _converted_backup/
 .claude/
 .impeccable/
+
+# Lab 3 · Firebase
+secrets/
+import-summary.json
+.firebase/
+*-debug.log
