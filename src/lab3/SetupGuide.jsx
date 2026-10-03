@@ -1,16 +1,31 @@
+import { Card, CardHeader } from "../components/ui.jsx";
+
+const Code = ({ children }) => <code className="rounded-md bg-canvas px-1.5 py-0.5 text-xs text-ink">{children}</code>;
+
+const STEPS = [
+  <>ทำ Lab 3.1 ตาม <Code>docs/lab3/LAB3_GUIDE.md</Code> ให้เสร็จ</>,
+  <>คัดลอก <Code>.env.example</Code> เป็น <Code>.env</Code> แล้วใส่ค่า web config</>,
+  <>หยุด <Code>npm run dev</Code> ด้วย Ctrl+C แล้วรันใหม่ (Vite อ่าน .env ตอนเริ่มเท่านั้น)</>,
+];
+
 export default function SetupGuide() {
   return (
-    <div className="max-w-2xl rounded-xl bg-surface p-6 ring-1 ring-line">
-      <h1 className="text-2xl font-bold text-ink">ยังไม่ได้เชื่อม Firebase</h1>
-      <ol className="mt-4 list-decimal space-y-2 pl-5 text-ink-subtle">
-        <li>ทำ Lab 3.1 ตาม <code className="rounded bg-canvas px-1">LAB3_GUIDE.md</code> ให้เสร็จ</li>
-        <li>คัดลอก <code className="rounded bg-canvas px-1">.env.example</code> เป็น <code className="rounded bg-canvas px-1">.env</code> แล้วใส่ค่า web config</li>
-        <li>หยุด <code className="rounded bg-canvas px-1">npm run dev</code> ด้วย Ctrl+C แล้วรันใหม่ (Vite อ่าน .env ตอนเริ่มเท่านั้น)</li>
+    <Card className="max-w-2xl animate-rise">
+      <CardHeader title="ยังไม่ได้เชื่อม Firebase" subtitle="แท็บนี้อ่านยอดขายจาก Firestore ต้องตั้งค่าก่อน 3 ขั้น" />
+      <ol className="space-y-2.5 px-4 pt-4 pb-4 sm:px-5">
+        {STEPS.map((step, i) => (
+          <li key={i} className="flex gap-3 text-[13px] leading-relaxed text-ink">
+            <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-chart text-xs font-semibold text-on-chart tabular-nums">
+              {i + 1}
+            </span>
+            <span>{step}</span>
+          </li>
+        ))}
       </ol>
-      <p className="mt-5 text-sm text-ink-muted">
+      <p className="border-t border-line px-4 py-3 text-xs text-ink-muted sm:px-5">
         สร้าง Firebase project ไม่ได้ (เช่น บัญชีองค์กรถูกจำกัด)? แจ้งผู้สอนเพื่อรับ checkpoint ที่มีโหมดสาธิต
         ซึ่งใช้ทำ Lab 3.2 ได้โดยไม่ต้องมี Firebase
       </p>
-    </div>
+    </Card>
   );
 }

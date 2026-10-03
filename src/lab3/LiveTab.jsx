@@ -17,6 +17,9 @@ import {
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth, db } from "./firebase.js";
 import { SignInCard, VerifyEmailCard } from "./SignIn.jsx";
+
+// เวลาที่แมวกระโดดลาหลังล็อกอินสำเร็จ (ตรงกับ animation cat-leave ใน index.css)
+const CAT_LEAVE_MS = 1500;
 import { addDays, todayBangkok } from "./time.js";
 import { BRANCHES } from "./saleModel.js";
 import KpiCard from "../components/KpiCard.jsx";
@@ -214,7 +217,7 @@ function RecentTable({ rows, products, fresh }) {
       ) : (
         <div className="mt-2 overflow-x-auto pb-2">
           <table className="w-full text-[13px]">
-            <thead className="text-left text-ink-muted">
+            <thead className="text-left text-xs text-ink-subtle">
               <tr>
                 <th className="px-4 py-2 font-medium sm:pl-5">เวลา</th>
                 <th className="px-3 py-2 font-medium">สาขา</th>
@@ -228,7 +231,7 @@ function RecentTable({ rows, products, fresh }) {
                 <tr
                   key={r.id}
                   className={`border-t border-line transition-colors duration-700 ${
-                    fresh.has(r.id) ? "bg-chart/15" : ""
+                    fresh.has(r.id) ? "bg-chart/15" : "hover:bg-surface-hover"
                   }`}
                 >
                   <td className="px-4 py-2 whitespace-nowrap text-ink-subtle tabular-nums sm:pl-5">
@@ -237,7 +240,7 @@ function RecentTable({ rows, products, fresh }) {
                   <td className="px-3 py-2 whitespace-nowrap text-ink">{r.branch}</td>
                   <td className="px-3 py-2 text-ink">
                     {name(r.product_id)}
-                    {r.source === "web" && <span className="ml-1.5 rounded bg-surface-selected px-1.5 py-0.5 text-[11px] text-ink-subtle">เว็บ</span>}
+                    {r.source === "web" && <span className="ml-1.5 rounded-md bg-surface-selected px-1.5 py-0.5 text-xs text-ink-subtle">เว็บ</span>}
                   </td>
                   <td className="px-3 py-2 text-right text-ink tabular-nums">{r.qty}</td>
                   <td className="px-4 py-2 text-right font-medium text-ink tabular-nums sm:pr-5">{formatBaht(r.revenue)}</td>
@@ -280,7 +283,7 @@ function LiveDashboard({ user }) {
     // จอกว้าง: Dashboard ซ้าย ฟอร์มขวา (ติดอยู่ตอนเลื่อน) · จอแคบ: ฟอร์มต่อท้าย Dashboard
     <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
       <div className="min-w-0 space-y-4">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex animate-rise flex-wrap items-center gap-2">
           <Segmented label="ช่วงเวลา" value={rangeKey} onChange={setRangeKey} options={RANGES} />
           <Select
             label="สาขา"
@@ -291,7 +294,10 @@ function LiveDashboard({ user }) {
           />
           <p className="text-[13px] text-ink-subtle">{rangeLabel}</p>
           <p className="ml-auto flex items-center gap-2 text-[13px] text-ink-subtle" title="รวมจำนวนเอกสารจากทุก snapshot ตั้งแต่เปิดหน้านี้">
-            <span className={`size-2 rounded-full ${live.status === "ready" ? "bg-up" : live.status === "error" ? "bg-down" : "bg-line-strong"}`} />
+            <span className="relative flex size-2" aria-hidden="true">
+              {live.status === "ready" && <span className="absolute inset-0 animate-ping rounded-full bg-chart opacity-60 [animation-duration:2.4s]" />}
+              <span className={`relative size-2 rounded-full ${live.status === "ready" ? "bg-chart" : live.status === "error" ? "bg-down" : "bg-line-strong"}`} />
+            </span>
             {live.status === "ready" ? "สด" : live.status === "error" ? "ขาดการเชื่อมต่อ" : "กำลังเชื่อมต่อ"}
             <span className="text-ink-muted">· อ่านเอกสารไปแล้ว</span>
             <span className="font-medium text-ink tabular-nums">{formatNumber(live.reads)}</span>
@@ -314,7 +320,7 @@ function LiveDashboard({ user }) {
 
         {live.status === "ready" && (
           <>
-            <Card className="p-2">
+            <Card className="animate-rise p-2" style={{ animationDelay: "70ms" }}>
               <div className="grid grid-cols-2 gap-1 lg:grid-cols-4">
                 <KpiCard label="ยอดขายรวม" value={view.kpis.totalRevenue} format={formatBaht} />
                 <KpiCard label="จำนวนบิล" value={view.kpis.orderCount} format={formatNumber} />
@@ -344,14 +350,18 @@ function LiveDashboard({ user }) {
             </Card>
 
             <div className="grid gap-4 xl:grid-cols-2">
-              <BranchCard data={view.branches} subtitle={`ทุกสาขา · ${rangeLabel}`} hasComparison={false} highlight={branch} />
-              <RecentTable rows={view.rows} products={products} fresh={live.fresh} />
+              <div className="animate-rise" style={{ animationDelay: "140ms" }}>
+                <BranchCard data={view.branches} subtitle={`ทุกสาขา · ${rangeLabel}`} hasComparison={false} highlight={branch} />
+              </div>
+              <div className="animate-rise" style={{ animationDelay: "200ms" }}>
+                <RecentTable rows={view.rows} products={products} fresh={live.fresh} />
+              </div>
             </div>
           </>
         )}
       </div>
 
-      <div className="lg:sticky lg:top-4">
+      <div className="animate-rise lg:sticky lg:top-4" style={{ animationDelay: "120ms" }}>
         <SaleForm products={products} uid={user.uid} />
       </div>
     </div>
@@ -378,8 +388,29 @@ export default function LiveTab() {
   const [user, setUser] = useState(undefined);
   // user.reload() แก้ object เดิม (ไม่ใช่ object ใหม่) จึงต้องบังคับ render เองหลังยืนยันอีเมล
   const [, setVerifiedTick] = useState(0);
+  // เพิ่งล็อกอินจากหน้านี้: ค้างหน้าล็อกอินไว้ให้แมวกระโดดลาก่อน แล้วค่อยเปิด Dashboard
+  // (เปิดหน้ามาแล้วล็อกอินอยู่แล้วจะไม่เล่น เพราะไม่ได้เห็นหน้าล็อกอินตั้งแต่แรก)
+  const [celebrating, setCelebrating] = useState(false);
 
-  useEffect(() => onAuthStateChanged(auth, setUser), []);
+  useEffect(() => {
+    let prev;
+    let timer = 0;
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      if (prev === null && u) {
+        const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (!reduce) {
+          setCelebrating(true);
+          timer = setTimeout(() => setCelebrating(false), CAT_LEAVE_MS);
+        }
+      }
+      prev = u;
+      setUser(u);
+    });
+    return () => {
+      unsubscribe();
+      clearTimeout(timer);
+    };
+  }, []);
 
   if (user === undefined) {
     return (
@@ -388,19 +419,20 @@ export default function LiveTab() {
       </p>
     );
   }
-  if (!user) return <SignInCard />;
+  // ตำแหน่งเดียวกันทั้งสองกรณี React จึงเก็บ state ของฟอร์มไว้ (อีเมลที่พิมพ์ไม่หายระหว่างแมวกระโดด)
+  if (!user || celebrating) return <SignInCard success={!!user} />;
   // บัญชี Google ยืนยันอีเมลมาแล้วเสมอ หน้านี้จึงขึ้นเฉพาะบัญชีอีเมลที่ยังไม่กดลิงก์
   if (!user.emailVerified) return <VerifyEmailCard user={user} onVerified={() => setVerifiedTick((n) => n + 1)} />;
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-end gap-2.5">
+      <div className="flex animate-fade-in items-center justify-end gap-2.5">
         <Avatar user={user} />
-        <span className="min-w-0 truncate text-[13px] font-medium text-ink">{user.displayName ?? user.email}</span>
+        <span className="min-w-0 truncate text-[13px] text-ink-subtle">{user.displayName ?? user.email}</span>
         <button
           type="button"
           onClick={() => signOut(auth)}
-          className="h-8 shrink-0 rounded-lg border border-line-strong bg-surface px-3 text-[13px] font-medium text-ink-subtle transition-colors hover:bg-surface-hover hover:text-ink"
+          className="h-8 shrink-0 rounded-lg border border-line-strong bg-surface px-3 text-[13px] font-medium text-ink shadow-[0_1px_0_0_rgb(0_0_0/0.05)] transition-[background-color,scale] hover:bg-surface-hover active:scale-[0.97]"
         >
           ออกจากระบบ
         </button>

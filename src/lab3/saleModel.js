@@ -8,6 +8,16 @@ export const PAYMENTS = ["QR พร้อมเพย์", "บัตรเค�
 export const MAX_QTY = 20;
 
 /**
+ * ค่าใหม่ของช่องจำนวนเมื่อกดปุ่ม − / + (delta = -1 หรือ 1) คืนเป็นข้อความเหมือนค่าจาก input
+ * อยู่ในช่วง 1–MAX_QTY เสมอ · ค่าที่พิมพ์ผิด (ว่าง, 1.5, abc) เริ่มนับจาก 0 จึงได้ 1 เมื่อกด +
+ */
+export function stepQty(value, delta) {
+  const s = String(value ?? "").trim();
+  const current = /^\d+$/.test(s) ? Number(s) : 0;
+  return String(Math.min(MAX_QTY, Math.max(1, current + delta)));
+}
+
+/**
  * ตรวจฟอร์ม { branch, product_id, qty, payment_method, customer_id } (ค่าเป็นข้อความจาก input)
  * คืน {} ถ้าถูกต้อง หรือ { ชื่อฟิลด์: ข้อความภาษาไทย } ถ้าผิด
  */

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { doc, setDoc, updateDoc, deleteDoc, getDocs, collection, query, limit, serverTimestamp } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from "./firebase.js";
+import { AlertIcon, Card, CardHeader, CheckIcon } from "../components/ui.jsx";
 
 const base = (uid) => ({
   order_id: "RULES-TEST", datetime: "2000-01-01T00:00:00+07:00", date: "2000-01-01", hour: 0,
@@ -62,54 +63,121 @@ export default function RulesTester() {
   const done = Object.keys(results).length === tests.length && !running;
   const passed = Object.values(results).filter((r) => r.blocked).length;
 
-  return (
-    <div className="max-w-3xl">
-      <h1 className="text-3xl font-bold text-ink">Lab 3.3 · ทดสอบ Security Rules</h1>
-      <p className="mt-2 text-ink-subtle">
-        กดปุ่มเพื่อลองโจมตีฐานข้อมูลของตัวเอง ทุกข้อควรได้ ✅ ถูกบล็อก
-        ทำ 2 รอบ: <b>ก่อน</b> deploy rules (โหมดทดสอบ จะเห็น ❌ เกือบทั้งหมด) และ <b>หลัง</b> deploy
-      </p>
-      <p className="mt-2 text-sm text-ink-muted">
-        {user ? `ทดสอบในฐานะ ${user.displayName ?? user.email} · ออกจากระบบแล้วกลับมาหน้านี้เพื่อทดสอบกรณีไม่ล็อกอิน`
-              : "ทดสอบในฐานะผู้ที่ยังไม่ล็อกอิน · ล็อกอินที่แท็บ \"สด\" แล้วกลับมาเพื่อทดสอบชุดที่เหลือ"}
-      </p>
-      <button onClick={runAll} disabled={running || user === undefined}
-              className="mt-4 rounded-lg bg-chart px-5 py-2.5 font-medium text-on-chart disabled:opacity-60">
-        {running ? "กำลังทดสอบ…" : `เริ่มทดสอบ ${tests.length} ข้อ`}
-      </button>
+  // ข้อที่กำลังรันอยู่ = ข้อแรกที่ยังไม่มีผล (ทดสอบทีละข้อตามลำดับ)
+  const current = running ? tests.find((t) => !results[t.name])?.name : null;
+  const allBlocked = done && passed === tests.length;
 
-      <div className="mt-5 overflow-x-auto rounded-xl ring-1 ring-line">
-      <table className="w-full bg-surface text-sm text-ink">
-        <thead className="text-left text-ink-muted">
-          <tr><th className="p-3 font-medium">การโจมตี</th><th className="p-3 font-medium">rules ที่ควรกันไว้</th><th className="p-3 font-medium">ผล</th></tr>
-        </thead>
-        <tbody>
-          {tests.map((t) => {
-            const r = results[t.name];
-            return (
-              <tr key={t.name} className="border-t border-line align-top">
-                <td className="p-3">{t.name}</td>
-                <td className="p-3 text-ink-muted">{t.why}</td>
-                <td className="p-3 whitespace-nowrap">
-                  {!r ? "–" : r.blocked === true ? <span className="text-up">✅ ถูกบล็อก</span>
-                    : r.blocked === false ? <span className="font-medium text-down">❌ ผ่านได้ อันตราย!</span>
-                    : <span className="text-chart">⚠️ {r.detail}</span>}
-                  {r && r.blocked === false && <div className="text-xs text-ink-muted">{r.detail}</div>}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      </div>
-      {done && (
-        <p className={`mt-4 font-medium ${passed === tests.length ? "text-up" : "text-down"}`}>
-          {passed === tests.length ? `🎉 บล็อกได้ครบ ${passed}/${tests.length} ข้อ` : `บล็อกได้ ${passed}/${tests.length} ข้อ ตรวจ firestore.rules แล้ว deploy ใหม่`}
+  return (
+    <div className="space-y-4">
+      {/* หัวหน้าแบบเดียวกับ Lab 2.2 */}
+      <header className="animate-rise">
+        <h1 className="text-3xl font-bold text-ink">Lab 3.3 · ทดสอบ Security Rules</h1>
+        <p className="mt-1 max-w-3xl text-ink-subtle">
+          ลองโจมตีฐานข้อมูลของตัวเองด้วยคำสั่งที่ไม่ควรทำได้ ทุกข้อต้องถูกบล็อก ทำ 2 รอบ: ก่อน deploy rules
+          (โหมดทดสอบ จะผ่านได้เกือบทุกข้อ) และหลัง deploy
         </p>
-      )}
-      <p className="mt-4 text-xs text-ink-muted">
-        ถ้ารอบแรก (โหมดทดสอบ) มีเอกสารหลุดเข้าไป จะมี order_id = RULES-TEST และวันที่ 1 ม.ค. 2000 ลบได้ใน Firebase console
-      </p>
+      </header>
+
+      <Card className="animate-rise" style={{ animationDelay: "70ms" }}>
+        <CardHeader
+          title={`การโจมตี ${tests.length} ข้อ`}
+          subtitle={
+            user === undefined
+              ? "กำลังตรวจสอบการเข้าสู่ระบบ…"
+              : user
+                ? `ทดสอบในฐานะ ${user.displayName ?? user.email} · ออกจากระบบแล้วกลับมาเพื่อทดสอบชุดไม่ล็อกอิน`
+                : "ทดสอบในฐานะผู้ที่ยังไม่ล็อกอิน · ล็อกอินที่แท็บสดแล้วกลับมาเพื่อทดสอบชุดที่เหลือ"
+          }
+        >
+          <button
+            type="button"
+            onClick={runAll}
+            disabled={running || user === undefined}
+            className="h-8 shrink-0 rounded-lg bg-chart px-3.5 text-[13px] font-semibold text-on-chart transition-[opacity,scale] active:scale-[0.97] disabled:cursor-wait disabled:opacity-60"
+          >
+            {running ? "กำลังทดสอบ…" : done ? "ทดสอบอีกครั้ง" : "เริ่มทดสอบ"}
+          </button>
+        </CardHeader>
+
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-[13px]">
+            <thead className="text-left text-xs text-ink-subtle">
+              <tr>
+                <th className="py-2 pr-3 pl-4 font-medium sm:pl-5">การโจมตี</th>
+                <th className="hidden px-3 py-2 font-medium sm:table-cell">rules ที่ควรกันไว้</th>
+                <th className="py-2 pr-4 pl-3 font-medium sm:pr-5">ผล</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tests.map((t) => (
+                <tr key={t.name} className="border-t border-line align-top transition-colors hover:bg-surface-hover">
+                  <td className="py-2.5 pr-3 pl-4 sm:pl-5">
+                    <span className="font-medium text-ink">{t.name}</span>
+                    {/* จอแคบ: ย้ายคำอธิบายมาไว้ใต้ชื่อ แทนคอลัมน์กลาง */}
+                    <span className="mt-0.5 block text-xs text-ink-subtle sm:hidden">{t.why}</span>
+                  </td>
+                  <td className="hidden px-3 py-2.5 text-ink-subtle sm:table-cell">{t.why}</td>
+                  <td className="py-2.5 pr-4 pl-3 whitespace-nowrap sm:pr-5">
+                    <Outcome result={results[t.name]} running={current === t.name} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-line px-4 py-3 sm:px-5">
+          {done ? (
+            <p role="status" className={`inline-flex animate-fade-in items-center gap-1.5 text-[13px] font-medium ${allBlocked ? "text-ink" : "text-down"}`}>
+              {allBlocked ? <CheckIcon className="size-4 text-chart" /> : <AlertIcon className="size-4" />}
+              {allBlocked
+                ? `บล็อกได้ครบ ${passed}/${tests.length} ข้อ`
+                : `บล็อกได้ ${passed}/${tests.length} ข้อ ตรวจ firestore.rules แล้ว deploy ใหม่`}
+            </p>
+          ) : (
+            <p className="text-[13px] text-ink-subtle">{running ? `ทดสอบแล้ว ${Object.keys(results).length}/${tests.length} ข้อ` : "ยังไม่ได้ทดสอบ"}</p>
+          )}
+          <p className="text-xs text-ink-muted">เอกสารที่หลุดเข้าไปจะมี order_id = RULES-TEST และวันที่ 1 ม.ค. 2000</p>
+        </div>
+      </Card>
     </div>
+  );
+}
+
+// ผลของการโจมตี 1 ข้อ: ถูกบล็อก (ดี) · ผ่านได้ (rules มีช่องโหว่) · ผลอื่น เช่น timeout
+function Outcome({ result, running }) {
+  if (running) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-ink-subtle">
+        <span className="size-1.5 animate-pulse rounded-full bg-chart" aria-hidden="true" />
+        กำลังทดสอบ
+      </span>
+    );
+  }
+  if (!result) return <span className="text-ink-muted">–</span>;
+  if (result.blocked === true) {
+    return (
+      <span className="inline-flex animate-fade-in items-center gap-1.5 text-ink">
+        <CheckIcon className="size-4 text-chart" />
+        ถูกบล็อก
+      </span>
+    );
+  }
+  if (result.blocked === false) {
+    return (
+      <span className="inline-flex animate-fade-in flex-col gap-0.5">
+        <span className="inline-flex w-fit items-center gap-1 rounded-md bg-down-bg px-1.5 py-0.5 text-xs font-medium text-down">
+          <AlertIcon className="size-3.5" />
+          ผ่านได้ อันตราย
+        </span>
+        <span className="text-xs whitespace-normal text-ink-muted">{result.detail}</span>
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex animate-fade-in items-center gap-1.5 text-ink-subtle">
+      <AlertIcon className="size-4" />
+      {result.detail}
+    </span>
   );
 }

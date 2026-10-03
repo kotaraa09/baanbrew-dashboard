@@ -1,7 +1,7 @@
 // Lab 3.3 · หน้าล็อกอิน: Google หรืออีเมล/รหัสผ่าน (Prompt 3.3A + ล็อกอินด้วยอีเมลไว้ทดสอบ)
 // บัญชีอีเมลต้องยืนยันอีเมลก่อนใช้งาน เพราะใครก็สมัครด้วยอีเมลของคนอื่นได้
 // (Security Rules ตรวจ email_verified ซ้ำอีกชั้น บัญชี Google ยืนยันมาแล้วเสมอ)
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
@@ -11,7 +11,8 @@ import {
   signOut,
 } from "firebase/auth";
 import { auth, googleProvider } from "./firebase.js";
-import { Card, CupIcon, Segmented } from "../components/ui.jsx";
+import { AlertIcon, Card, CheckIcon, EyeIcon, EyeOffIcon, Segmented } from "../components/ui.jsx";
+import LoginCat from "./LoginCat.jsx";
 
 // error ของ Firebase Auth ที่พบบ่อย → บอกว่าต้องไปแก้ตรงไหน
 export function authErrorMessage(e) {
@@ -47,8 +48,21 @@ export function authErrorMessage(e) {
   }
 }
 
+// ช่องพิมพ์หน้าตาเดียวกับ Select และฟอร์มบันทึกยอดขาย
 const inputClass =
-  "h-9 w-full rounded-lg border border-line-strong bg-surface px-2.5 text-sm text-ink transition-colors placeholder:text-ink-muted hover:border-ink-muted";
+  "h-8 w-full rounded-lg border border-line-strong bg-surface px-2.5 text-[13px] font-medium text-ink shadow-[0_1px_0_0_rgb(0_0_0/0.05)] transition-colors placeholder:font-normal placeholder:text-ink-muted hover:bg-surface-hover";
+
+// ข้อความผลลัพธ์: ไอคอนวาด (ไม่ใช้ emoji) · error สีแดง · สำเร็จใช้ทองกับตัวอักษรปกติ
+function Message({ message, className = "" }) {
+  if (!message) return null;
+  const error = message.tone === "error";
+  return (
+    <p role={error ? "alert" : "status"} className={`flex animate-fade-in items-start justify-center gap-1.5 text-[13px] ${error ? "text-down" : "text-ink"} ${className}`}>
+      {error ? <AlertIcon className="mt-px size-4 shrink-0" /> : <CheckIcon className="mt-px size-4 shrink-0 text-chart" />}
+      <span>{message.text}</span>
+    </p>
+  );
+}
 
 const MODES = [
   { value: "signin", label: "เข้าสู่ระบบ" },
@@ -66,13 +80,44 @@ function GoogleLogo() {
   );
 }
 
-export function SignInCard() {
+// success = เพิ่งล็อกอินสำเร็จ LiveTab ค้างหน้านี้ไว้ครู่หนึ่งให้แมวกระโดดลาก่อนเปิด Dashboard
+export function SignInCard({ success = false }) {
   const [mode, setMode] = useState("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // ยืนยันรหัสผ่าน (เฉพาะสมัครสมาชิก): บอกว่าไม่ตรงหลังออกจากช่องหรือกดสมัคร ไม่ขึ้นแดงระหว่างกำลังพิมพ์
+  const [confirm, setConfirm] = useState("");
+  const [confirmTouched, setConfirmTouched] = useState(false);
   const [busy, setBusy] = useState(null); // "google" | "email" | "reset" | null
   const [message, setMessage] = useState(null); // { tone: "error" | "ok", text }
-  const ids = { email: useId(), password: useId() };
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const ids = { email: useId(), password: useId(), confirm: useId() };
+  const cat = useRef(null);
+  const confirmRef = useRef(null);
+  const signup = mode === "signup";
+  const confirmMismatch = signup && confirmTouched && confirm !== password;
+  const confirmMatches = signup && confirm !== "" && confirm === password;
+
+  // ให้แมวมองตัวอักษรที่กำลังพิมพ์: วัดความกว้างข้อความก่อนเคอร์เซอร์ด้วย canvas ตามฟอนต์จริงของช่อง
+  const followCaret = (input) => {
+    const style = getComputedStyle(input);
+    const ctx = (followCaret.canvas ??= document.createElement("canvas")).getContext("2d");
+    ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+    const before = input.value.slice(0, input.selectionStart ?? input.value.length);
+    const rect = input.getBoundingClientRect();
+    const x = rect.left + parseFloat(style.paddingLeft) + ctx.measureText(before).width - input.scrollLeft;
+    cat.current?.lookAt({ x: Math.min(x, rect.right - 8), y: rect.top + rect.height / 2 });
+  };
+  const caretEvents = {
+    onFocus: (e) => followCaret(e.target),
+    onKeyUp: (e) => followCaret(e.target),
+    onClick: (e) => followCaret(e.target),
+    onSelect: (e) => followCaret(e.target),
+    onBlur: () => cat.current?.lookAt(null),
+  };
+  // ช่องรหัสผ่าน: หางปิดตา · กดแสดงรหัสผ่าน: แอบมองข้างหนึ่ง
+  const catMode = success ? "leave" : passwordFocused ? (showPassword ? "peek" : "cover") : "idle";
 
   // ครอบทุกการกด: กันกดซ้ำระหว่างรอ และแปลง error เป็นภาษาไทย
   const run = (kind, fn) => async (e) => {
@@ -83,6 +128,8 @@ export function SignInCard() {
       await fn();
     } catch (err) {
       setMessage({ tone: "error", text: authErrorMessage(err) });
+      // ปิด popup เองไม่ใช่ความผิดพลาดที่ต้องตกใจ
+      if (err.code !== "auth/popup-closed-by-user" && err.code !== "auth/cancelled-popup-request") cat.current?.startle();
     } finally {
       setBusy(null);
     }
@@ -94,6 +141,13 @@ export function SignInCard() {
     if (mode === "signin") {
       await signInWithEmailAndPassword(auth, email.trim(), password);
     } else {
+      // ตรวจในเบราว์เซอร์ก่อน ไม่ส่งไป Firebase ถ้าพิมพ์รหัสผ่านสองช่องไม่ตรงกัน
+      if (confirm !== password) {
+        setConfirmTouched(true);
+        confirmRef.current?.focus();
+        cat.current?.startle();
+        return;
+      }
       const { user } = await createUserWithEmailAndPassword(auth, email.trim(), password);
       // ส่งลิงก์ยืนยันทันที LiveTab จะแสดงหน้ารอยืนยันจนกว่าจะกดลิงก์
       await sendEmailVerification(user);
@@ -111,73 +165,142 @@ export function SignInCard() {
   });
 
   return (
-    <Card className="mx-auto max-w-sm px-6 py-7">
+    // mt-32: ที่ว่างเหนือการ์ดให้แมวนอน (หางพาดอยู่บนขอบการ์ด จึงใช้ padding บนปกติได้)
+    <Card className="relative mx-auto mt-32 max-w-sm animate-rise px-6 py-7">
+      <LoginCat ref={cat} mode={catMode} />
       <div className="text-center">
-        <CupIcon className="mx-auto mb-3 size-8 text-chart" />
-        <h1 className="text-lg font-semibold text-ink">เข้าสู่ระบบเพื่อดูยอดขายสด</h1>
+        <h1 className="text-base font-semibold text-ink">เข้าสู่ระบบเพื่อดูยอดขายสด</h1>
         <p className="mt-1 text-[13px] text-ink-subtle">ยอดขายเปิดให้เฉพาะผู้ที่ล็อกอิน และทุกรายการที่บันทึกจะผูกกับบัญชีของคุณ</p>
       </div>
 
-      <button
-        type="button"
-        onClick={google}
-        disabled={!!busy}
-        className="mt-5 inline-flex h-10 w-full items-center justify-center gap-2.5 rounded-lg border border-line-strong bg-surface text-sm font-medium text-ink transition-[background-color,scale] hover:bg-surface-hover active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
-      >
-        <GoogleLogo />
-        {busy === "google" ? "กำลังเปิดหน้าต่างล็อกอิน…" : "เข้าสู่ระบบด้วย Google"}
-      </button>
-
-      <div className="my-5 flex items-center gap-3 text-xs text-ink-muted" aria-hidden="true">
-        <span className="h-px flex-1 bg-line" />
-        หรือใช้อีเมล
-        <span className="h-px flex-1 bg-line" />
-      </div>
-
-      <div className="mb-4 flex justify-center">
-        <Segmented label="วิธีใช้อีเมล" value={mode} onChange={(m) => { setMode(m); setMessage(null); }} options={MODES} />
+      <div className="mt-5 mb-4 flex justify-center">
+        <Segmented
+          label="วิธีใช้อีเมล"
+          value={mode}
+          onChange={(m) => {
+            setMode(m);
+            setMessage(null);
+            setConfirmTouched(false);
+          }}
+          options={MODES}
+        />
       </div>
 
       <form onSubmit={submitEmail} className="space-y-3">
         <div>
-          <label htmlFor={ids.email} className="mb-1 block text-[13px] font-medium text-ink-subtle">อีเมล</label>
-          <input id={ids.email} type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
+          <label htmlFor={ids.email} className="mb-1 block text-xs font-medium text-ink-subtle">อีเมล</label>
+          <input
+            id={ids.email}
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              followCaret(e.target);
+            }}
+            {...caretEvents}
+            className={inputClass}
+          />
         </div>
         <div>
           <div className="mb-1 flex items-baseline justify-between">
-            <label htmlFor={ids.password} className="text-[13px] font-medium text-ink-subtle">รหัสผ่าน</label>
+            <label htmlFor={ids.password} className="text-xs font-medium text-ink-subtle">รหัสผ่าน</label>
             {mode === "signin" && (
               <button type="button" onClick={reset} disabled={!!busy} className="text-xs text-ink-muted underline-offset-2 hover:text-ink hover:underline">
                 ลืมรหัสผ่าน
               </button>
             )}
           </div>
-          <input
-            id={ids.password}
-            type="password"
-            autoComplete={mode === "signin" ? "current-password" : "new-password"}
-            required
-            minLength={mode === "signup" ? 6 : undefined}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={inputClass}
-          />
-          {mode === "signup" && <p className="mt-1 text-xs text-ink-muted">อย่างน้อย 6 ตัวอักษร · จะส่งลิงก์ยืนยันไปที่อีเมลนี้</p>}
+          <div className="relative">
+            <input
+              id={ids.password}
+              type={showPassword ? "text" : "password"}
+              autoComplete={mode === "signin" ? "current-password" : "new-password"}
+              required
+              minLength={mode === "signup" ? 6 : undefined}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onFocus={() => setPasswordFocused(true)}
+              onBlur={() => setPasswordFocused(false)}
+              className={`${inputClass} pr-9`}
+            />
+            <button
+              type="button"
+              aria-label={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
+              aria-pressed={showPassword}
+              aria-controls={ids.password}
+              // ไม่ให้ปุ่มแย่ง focus จากช่องรหัสผ่าน หางแมวจะได้ไม่เด้งออกจากตาทุกครั้งที่กด
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute inset-y-0 right-0 flex w-9 items-center justify-center rounded-r-lg text-ink-muted transition-colors hover:text-ink"
+            >
+              {showPassword ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+            </button>
+          </div>
+          {signup && <p className="mt-1 text-xs text-ink-muted">อย่างน้อย 6 ตัวอักษร · จะส่งลิงก์ยืนยันไปที่อีเมลนี้</p>}
         </div>
+        {signup && (
+          <div className="animate-fade-in">
+            <label htmlFor={ids.confirm} className="mb-1 block text-xs font-medium text-ink-subtle">ยืนยันรหัสผ่าน</label>
+            <input
+              ref={confirmRef}
+              id={ids.confirm}
+              // ปุ่มแสดงรหัสผ่านในช่องบนคุมทั้งสองช่อง จะได้เทียบกันด้วยตาได้
+              type={showPassword ? "text" : "password"}
+              autoComplete="new-password"
+              required
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              onFocus={() => setPasswordFocused(true)}
+              onBlur={() => {
+                setPasswordFocused(false);
+                if (confirm) setConfirmTouched(true);
+              }}
+              aria-invalid={confirmMismatch}
+              aria-describedby={confirmMismatch || confirmMatches ? `${ids.confirm}-hint` : undefined}
+              className={`${inputClass} ${confirmMismatch ? "!border-down" : ""}`}
+            />
+            {confirmMismatch && (
+              <p id={`${ids.confirm}-hint`} className="mt-1 flex items-center gap-1 text-xs text-down">
+                <AlertIcon className="size-3.5 shrink-0" />
+                รหัสผ่านสองช่องไม่ตรงกัน
+              </p>
+            )}
+            {!confirmMismatch && confirmMatches && (
+              <p id={`${ids.confirm}-hint`} className="mt-1 flex animate-fade-in items-center gap-1 text-xs text-ink-subtle">
+                <CheckIcon className="size-3.5 shrink-0 text-chart" />
+                รหัสผ่านตรงกัน
+              </p>
+            )}
+          </div>
+        )}
         <button
           type="submit"
           disabled={!!busy}
-          className="h-10 w-full rounded-lg bg-chart text-sm font-semibold text-on-chart transition-[opacity,scale] active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
+          className="h-9 w-full rounded-lg bg-chart text-[13px] font-semibold text-on-chart transition-[opacity,scale] active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
         >
           {busy === "email" ? "กำลังดำเนินการ…" : mode === "signin" ? "เข้าสู่ระบบ" : "สมัครสมาชิก"}
         </button>
       </form>
 
-      {message && (
-        <p role={message.tone === "error" ? "alert" : "status"} className={`mt-4 text-center text-[13px] ${message.tone === "error" ? "text-down" : "text-up"}`}>
-          {message.text}
-        </p>
-      )}
+      <div className="my-5 flex items-center gap-3 text-xs text-ink-muted" aria-hidden="true">
+        <span className="h-px flex-1 bg-line" />
+        หรือ
+        <span className="h-px flex-1 bg-line" />
+      </div>
+
+      <button
+        type="button"
+        onClick={google}
+        disabled={!!busy}
+        className="inline-flex h-9 w-full items-center justify-center gap-2.5 rounded-lg border border-line-strong bg-surface text-[13px] font-medium text-ink shadow-[0_1px_0_0_rgb(0_0_0/0.05)] transition-[background-color,scale] hover:bg-surface-hover active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
+      >
+        <GoogleLogo />
+        {busy === "google" ? "กำลังเปิดหน้าต่างล็อกอิน…" : "เข้าสู่ระบบด้วย Google"}
+      </button>
+
+      <Message message={success ? { tone: "ok", text: "เข้าสู่ระบบแล้ว กำลังเปิดยอดขาย…" } : message} className="mt-4 text-center" />
     </Card>
   );
 }
@@ -220,8 +343,8 @@ export function VerifyEmailCard({ user, onVerified }) {
   };
 
   return (
-    <Card className="mx-auto max-w-sm px-6 py-7 text-center">
-      <h1 className="text-lg font-semibold text-ink">ยืนยันอีเมลก่อนใช้งาน</h1>
+    <Card className="mx-auto max-w-sm animate-rise px-6 py-7 text-center">
+      <h1 className="text-base font-semibold text-ink">ยืนยันอีเมลก่อนใช้งาน</h1>
       <p className="mt-2 text-[13px] text-ink-subtle">
         ส่งลิงก์ยืนยันไปที่ <span className="font-medium text-ink">{user.email}</span> แล้ว กดลิงก์ในอีเมล จากนั้นกลับมากดปุ่มด้านล่าง
       </p>
@@ -230,7 +353,7 @@ export function VerifyEmailCard({ user, onVerified }) {
           type="button"
           onClick={check}
           disabled={!!busy}
-          className="h-10 w-full rounded-lg bg-chart text-sm font-semibold text-on-chart disabled:cursor-wait disabled:opacity-60"
+          className="h-9 w-full rounded-lg bg-chart text-[13px] font-semibold text-on-chart transition-[opacity,scale] active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
         >
           {busy === "check" ? "กำลังตรวจ…" : "ยืนยันแล้ว เข้าใช้งาน"}
         </button>
@@ -246,11 +369,7 @@ export function VerifyEmailCard({ user, onVerified }) {
           ใช้บัญชีอื่น
         </button>
       </div>
-      {message && (
-        <p role={message.tone === "error" ? "alert" : "status"} className={`mt-4 text-[13px] ${message.tone === "error" ? "text-down" : "text-up"}`}>
-          {message.text}
-        </p>
-      )}
+      <Message message={message} className="mt-4" />
     </Card>
   );
 }

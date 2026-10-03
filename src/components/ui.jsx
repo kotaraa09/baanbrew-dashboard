@@ -185,9 +185,44 @@ export const ChevronDownIcon = (p) => (
   </Icon>
 );
 
-const CheckIcon = (p) => (
+export const CheckIcon = (p) => (
   <Icon {...p}>
     <path d="m4.5 10.5 3.5 3.5 7.5-8" />
+  </Icon>
+);
+
+// ตา = แสดงรหัสผ่าน · ตามีขีด = ซ่อนรหัสผ่าน
+export const EyeIcon = (p) => (
+  <Icon {...p}>
+    <path d="M2.5 10s2.8-5.5 7.5-5.5 7.5 5.5 7.5 5.5-2.8 5.5-7.5 5.5S2.5 10 2.5 10Z" />
+    <circle cx="10" cy="10" r="2.25" />
+  </Icon>
+);
+
+export const EyeOffIcon = (p) => (
+  <Icon {...p}>
+    <path d="M8.2 4.7A7 7 0 0 1 10 4.5c4.7 0 7.5 5.5 7.5 5.5a13 13 0 0 1-2 2.7M5.4 6.1C3.5 7.5 2.5 10 2.5 10s2.8 5.5 7.5 5.5c1.4 0 2.6-.5 3.6-1.1" />
+    <path d="M8.4 8.4a2.25 2.25 0 0 0 3.2 3.2M3 3l14 14" />
+  </Icon>
+);
+
+export const MinusIcon = (p) => (
+  <Icon {...p}>
+    <path d="M5 10h10" />
+  </Icon>
+);
+
+export const PlusIcon = (p) => (
+  <Icon {...p}>
+    <path d="M10 5v10M5 10h10" />
+  </Icon>
+);
+
+// สามเหลี่ยมเตือน = มีปัญหาที่ต้องแก้ (ข้อผิดพลาด, rules มีช่องโหว่)
+export const AlertIcon = (p) => (
+  <Icon {...p}>
+    <path d="M8.7 3.6 2.6 14.2A1.5 1.5 0 0 0 3.9 16.5h12.2a1.5 1.5 0 0 0 1.3-2.3L11.3 3.6a1.5 1.5 0 0 0-2.6 0Z" />
+    <path d="M10 8v3.5M10 14v.01" />
   </Icon>
 );
 
@@ -244,7 +279,8 @@ export function CardHeader({ title, subtitle, children }) {
 // Esc ปิดแล้วคืน focus ให้ปุ่ม, Tab/คลิกนอกกรอบปิดเฉย ๆ · เปิด: จางเข้า+ขยายจาก 97% · ปิด: จางออกเร็วกว่า
 const CLOSE_MS = 120;
 
-export function Select({ label, icon: LeadIcon, value, onChange, options }) {
+// block = เต็มความกว้าง (ใช้ในฟอร์ม) · invalid = ขอบแดงเมื่อกรอกผิด · describedBy = id ของข้อความ error
+export function Select({ label, icon: LeadIcon, value, onChange, options, id, block = false, invalid = false, describedBy }) {
   const [mounted, setMounted] = useState(false);
   const [closing, setClosing] = useState(false);
   const [active, setActive] = useState(0);
@@ -321,19 +357,22 @@ export function Select({ label, icon: LeadIcon, value, onChange, options }) {
   };
 
   return (
-    <div ref={rootRef} className="relative inline-flex">
+    <div ref={rootRef} className={`relative ${block ? "flex w-full" : "inline-flex"}`}>
       <button
         ref={buttonRef}
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={mounted ? listId : undefined}
+        id={id}
         aria-label={`${label}: ${current?.label ?? ""}`}
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
         onClick={() => (open ? hide() : show())}
         onKeyDown={onButtonKey}
-        className={`relative inline-flex h-8 cursor-pointer items-center rounded-lg border bg-surface pr-8 pl-8 text-[13px] font-medium text-ink shadow-[0_1px_0_0_rgb(0_0_0/0.05)] transition-colors hover:bg-surface-hover ${
-          open ? "border-chart" : "border-line-strong"
-        }`}
+        className={`relative inline-flex h-8 cursor-pointer items-center rounded-lg border bg-surface pr-8 text-[13px] font-medium text-ink shadow-[0_1px_0_0_rgb(0_0_0/0.05)] transition-colors hover:bg-surface-hover ${
+          LeadIcon ? "pl-8" : "pl-2.5"
+        } ${block ? "w-full truncate text-left" : ""} ${open ? "border-chart" : invalid ? "border-down" : "border-line-strong"}`}
       >
         {LeadIcon && <LeadIcon className="pointer-events-none absolute left-2.5 size-4 text-ink-subtle" />}
         {current?.label}

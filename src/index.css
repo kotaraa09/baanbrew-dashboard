@@ -322,6 +322,121 @@ html { transition: background-color 0.5s ease; }
 
 /* ผู้ใช้ตั้งค่าลดการเคลื่อนไหว: ปิดทุก animation/transition ในที่เดียว (ยังจบสถานะปลายทางเหมือนเดิม)
    ไม่ต้องเขียน reduced-motion แยกตามแต่ละ component อีก */
+/* ---------- แมวบนการ์ดล็อกอิน (src/lab3/LoginCat.jsx) ----------
+   สลับสีตามธีมให้ตัดกับพื้น: โหมดสว่าง = แมวดำ, โหมดมืด = แมวขาว · ตาทองเหมือนกันทั้งสองโหมด */
+.login-cat {
+  --cat-fur: #1b1917;
+  --cat-shade: #3a352f;
+  --cat-ear: #4d3c31;
+  --cat-nose: #7d5d4c;
+  --cat-line: #d2b36e;
+  --cat-whisker: rgb(255 255 255 / 0.4);
+}
+:root[data-theme="dark"] .login-cat {
+  --cat-fur: #f2eee6;
+  --cat-shade: #cfc7b8;
+  --cat-ear: #edbcae;
+  --cat-nose: #d9988a;
+  --cat-line: #6b5d4e;
+  --cat-whisker: rgb(0 0 0 / 0.3);
+}
+
+/* หาง (แกว่งตอนพัก + ดัดขึ้นไปปิดตา) ขยับด้วย JavaScript ใน LoginCat.jsx ไม่มี CSS ตรงนี้ */
+
+/* กะพริบตาเป็นระยะ แต่ละข้างหดลงจากกึ่งกลางของตัวเอง */
+.cat-eye {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cat-blink 5.5s ease-in-out infinite;
+}
+.cat-eye:nth-child(2n) { animation-delay: 40ms; }
+@keyframes cat-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.08); }
+}
+
+/* หู: ลู่ไปด้านหลังตอนสะดุ้ง, กระดิกตอนถูกลูบ */
+.cat-ear-l,
+.cat-ear-r {
+  transform-box: view-box;
+  transition: transform 280ms var(--ease-out);
+}
+.cat-ear-l { transform-origin: 68px 42px; }
+.cat-ear-r { transform-origin: 94px 41px; }
+.is-startled .cat-ear-l { transform: rotate(-30deg); }
+.is-startled .cat-ear-r { transform: rotate(30deg); }
+.is-petting .cat-ear-r { animation: cat-ear-twitch 900ms ease-in-out infinite; }
+@keyframes cat-ear-twitch {
+  0%, 70%, 100% { transform: rotate(0); }
+  80% { transform: rotate(12deg); }
+}
+
+/* สะดุ้งตอนล็อกอินผิด: กระโดดขึ้นนิดเดียวแล้วลงที่เดิม */
+.is-startled .cat-all { animation: cat-hop 420ms var(--ease-out); }
+@keyframes cat-hop {
+  0%, 100% { transform: translateY(0); }
+  35% { transform: translateY(-7px); }
+}
+
+/* ล็อกอินสำเร็จ (รวม 1500ms = CAT_LEAVE_MS ใน LiveTab.jsx)
+   1) ลุกขึ้น: ท่านอนจางออก ท่ายืนดันตัวขึ้นจากขอบการ์ด
+   2) ยืดตัว: บิดขี้เกียจตัวยาว แล้วย่อตัวเตรียมกระโดด
+   3) กระโดด: ดีดตัวโค้งออกไปทางขวาแล้วจางหาย
+   จุดหมุนอยู่ที่เท้าบนขอบการ์ด (y = 96) การยืด/ย่อจึงยุบลงบนขอบการ์ด ไม่ลอยกลางอากาศ */
+.is-leaving .cat-lying {
+  transform-box: view-box;
+  transform-origin: 130px 96px;
+  animation: cat-lie-out 280ms ease-out forwards;
+}
+@keyframes cat-lie-out {
+  to { opacity: 0; transform: scaleY(0.9); }
+}
+.cat-stand {
+  transform-box: view-box;
+  transform-origin: 128px 96px;
+  animation: cat-stand-leave 1500ms cubic-bezier(0.45, 0, 0.55, 1) forwards;
+}
+@keyframes cat-stand-leave {
+  0% { opacity: 0; transform: scaleY(0.55); }
+  14% { opacity: 1; transform: scaleY(1.05); }
+  22% { transform: none; }
+  /* ยืดตัว: ตัวยาวขึ้น เตี้ยลงเล็กน้อย */
+  36% { transform: scale(1.12, 0.92); }
+  44% { transform: none; }
+  /* ย่อตัวเตรียมกระโดด */
+  54% { transform: scale(1.02, 0.84); }
+  /* ดีดตัวขึ้นแล้วโค้งออกขวา */
+  66% { transform: translate(34px, -50px) rotate(-10deg) scale(0.98, 1.06); opacity: 1; }
+  84% { transform: translate(120px, -40px) rotate(6deg); opacity: 1; }
+  100% { transform: translate(180px, 6px) rotate(16deg); opacity: 0; }
+}
+/* หางตั้งชี้ขึ้นแกว่งไปมาตอนยืน (ดีใจ) */
+.cat-stand-tail {
+  transform-box: view-box;
+  transform-origin: 84px 62px;
+  animation: cat-stand-wag 500ms ease-in-out infinite alternate;
+}
+@keyframes cat-stand-wag {
+  from { transform: rotate(-6deg); }
+  to { transform: rotate(6deg); }
+}
+
+/* "prr…" ตอนลูบ และ "z" ตอนหลับ ลอยขึ้นเหนือหัวแล้วจางหาย */
+.cat-float {
+  position: absolute;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-chart);
+  animation: cat-float 1.6s ease-out infinite;
+}
+.cat-purr { left: 146px; top: 0; }
+.cat-zzz { left: 140px; top: 6px; animation-duration: 2.4s; }
+@keyframes cat-float {
+  0% { opacity: 0; transform: translateY(6px); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-14px); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,

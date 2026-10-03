@@ -4,21 +4,22 @@
 import { useId, useMemo, useState } from "react";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "./firebase.js";
-import { BRANCHES, MAX_QTY, PAYMENTS, buildSale, validateSaleForm } from "./saleModel.js";
-import { Card, CardHeader } from "../components/ui.jsx";
+import { BRANCHES, MAX_QTY, PAYMENTS, buildSale, stepQty, validateSaleForm } from "./saleModel.js";
+import { AlertIcon, Card, CardHeader, CheckIcon, MinusIcon, PlusIcon, Select } from "../components/ui.jsx";
 import { formatBaht } from "../lib/metrics.js";
 
 const EMPTY = { branch: "", product_id: "", qty: "1", payment_method: PAYMENTS[0], customer_id: "" };
 
+// ช่องพิมพ์หน้าตาเดียวกับ Select (สูง 32px, ขอบ line-strong, เงาขอบล่าง 1px)
 const inputClass = (invalid) =>
-  `h-9 w-full rounded-lg border bg-surface px-2.5 text-sm text-ink transition-colors ${
-    invalid ? "border-down" : "border-line-strong hover:border-ink-muted"
+  `h-8 w-full rounded-lg border bg-surface px-2.5 text-[13px] font-medium text-ink shadow-[0_1px_0_0_rgb(0_0_0/0.05)] transition-colors placeholder:font-normal placeholder:text-ink-muted hover:bg-surface-hover ${
+    invalid ? "border-down" : "border-line-strong"
   }`;
 
 function Field({ id, label, optional, error, children }) {
   return (
     <div>
-      <label htmlFor={id} className="mb-1 block text-[13px] font-medium text-ink-subtle">
+      <label htmlFor={id} className="mb-1 block text-xs font-medium text-ink-subtle">
         {label}
         {optional && <span className="font-normal text-ink-muted"> (ไม่บังคับ)</span>}
       </label>
@@ -28,6 +29,59 @@ function Field({ id, label, optional, error, children }) {
           {error}
         </p>
       )}
+    </div>
+  );
+}
+
+// ช่องจำนวนแบบ − [ 2 ] + แทน <input type="number"> ที่ลูกศรเล็กของเบราว์เซอร์ไม่เข้าธีม (โดยเฉพาะโหมดมืด)
+// พิมพ์เองได้ (ตรวจด้วย validateSaleForm เหมือนเดิม) · ปุ่ม/ลูกศรขึ้นลงจะเลื่อนในช่วง 1–MAX_QTY เสมอ
+function QtyStepper({ id, value, onChange, invalid, describedBy }) {
+  const n = Number(value);
+  const valid = /^\d+$/.test(String(value).trim());
+  const step = (d) => onChange(stepQty(value, d));
+  const onKeyDown = (e) => {
+    const keys = { ArrowUp: 1, ArrowDown: -1 };
+    if (e.key in keys) {
+      e.preventDefault();
+      step(keys[e.key]);
+    } else if (e.key === "Home" || e.key === "End") {
+      e.preventDefault();
+      onChange(String(e.key === "Home" ? 1 : MAX_QTY));
+    }
+  };
+  const btn =
+    "flex w-8 shrink-0 items-center justify-center text-ink-subtle transition-[background-color,color,scale] hover:bg-surface-hover hover:text-ink active:scale-90 disabled:pointer-events-none disabled:opacity-35";
+
+  return (
+    <div
+      className={`flex h-8 overflow-hidden rounded-lg border bg-surface shadow-[0_1px_0_0_rgb(0_0_0/0.05)] transition-colors focus-within:border-chart ${
+        invalid ? "border-down" : "border-line-strong"
+      }`}
+    >
+      {/* tabIndex -1: ใช้ลูกศรขึ้นลงในช่องแทนได้ ไม่ต้องกด Tab ผ่านปุ่มสองตัว */}
+      <button type="button" tabIndex={-1} aria-label="ลดจำนวน" onClick={() => step(-1)} disabled={valid && n <= 1} className={btn}>
+        <MinusIcon className="size-3.5" />
+      </button>
+      <input
+        id={id}
+        type="text"
+        inputMode="numeric"
+        autoComplete="off"
+        role="spinbutton"
+        aria-valuemin={1}
+        aria-valuemax={MAX_QTY}
+        aria-valuenow={valid ? n : undefined}
+        aria-invalid={invalid}
+        aria-describedby={describedBy}
+        value={value}
+        onChange={onChange}
+        onKeyDown={onKeyDown}
+        onFocus={(e) => e.target.select()}
+        className="min-w-0 flex-1 border-x border-line bg-transparent text-center text-[13px] font-medium text-ink tabular-nums outline-none"
+      />
+      <button type="button" tabIndex={-1} aria-label="เพิ่มจำนวน" onClick={() => step(1)} disabled={valid && n >= MAX_QTY} className={btn}>
+        <PlusIcon className="size-3.5" />
+      </button>
     </div>
   );
 }
@@ -44,19 +98,21 @@ export default function SaleForm({ products, uid = "anonymous" }) {
   const product = products.find((p) => p.product_id === form.product_id);
   const total = product && !errors.qty ? Number(form.qty) * Number(product.price) : null;
 
-  // จัดเมนูตามหมวด แสดงใน <optgroup>
-  const groups = useMemo(() => {
-    const m = new Map();
-    for (const p of [...products].sort((a, b) => a.product_id.localeCompare(b.product_id))) {
-      const c = p.category ?? "อื่น ๆ";
-      if (!m.has(c)) m.set(c, []);
-      m.get(c).push(p);
-    }
-    return [...m];
-  }, [products]);
+  // เมนูเรียงตามรหัส (กาแฟ → ชา → อื่น ๆ ตามที่ร้านจัดไว้) แสดงราคาต่อท้าย
+  const menuOptions = useMemo(
+    () => [
+      { value: "", label: products.length ? "เลือกเมนู" : "กำลังโหลดเมนู…" },
+      ...[...products]
+        .sort((a, b) => a.product_id.localeCompare(b.product_id))
+        .map((p) => ({ value: p.product_id, label: `${p.product_name} · ${formatBaht(p.price)}` })),
+    ],
+    [products]
+  );
 
+  // Select ส่งค่ามาตรง ๆ ส่วน <input> ส่ง event
   const set = (key) => (e) => {
-    setForm((f) => ({ ...f, [key]: e.target.value }));
+    const value = e?.target ? e.target.value : e;
+    setForm((f) => ({ ...f, [key]: value }));
     if (status.kind !== "saving") setStatus({ kind: "idle" });
   };
 
@@ -91,81 +147,52 @@ export default function SaleForm({ products, uid = "anonymous" }) {
       <CardHeader title="บันทึกยอดขาย" subtitle="1 ครั้ง = 1 เมนูในบิล · ราคาดึงจากเมนูอัตโนมัติ" />
       <form onSubmit={onSubmit} noValidate className="space-y-3 px-4 pt-3 pb-4 sm:px-5">
         <Field id={ids.branch} label="สาขา" error={shownErrors.branch}>
-          <select
+          <Select
             id={ids.branch}
+            block
+            label="สาขา"
             value={form.branch}
             onChange={set("branch")}
-            aria-invalid={!!shownErrors.branch}
-            aria-describedby={describedBy("branch", ids.branch)}
-            className={inputClass(shownErrors.branch)}
-          >
-            <option value="" disabled>
-              เลือกสาขา
-            </option>
-            {BRANCHES.map((b) => (
-              <option key={b} value={b}>
-                {b}
-              </option>
-            ))}
-          </select>
+            invalid={!!shownErrors.branch}
+            describedBy={describedBy("branch", ids.branch)}
+            options={[{ value: "", label: "เลือกสาขา" }, ...BRANCHES.map((b) => ({ value: b, label: b }))]}
+          />
         </Field>
 
         <Field id={ids.product} label="เมนู" error={shownErrors.product_id}>
-          <select
+          <Select
             id={ids.product}
+            block
+            label="เมนู"
             value={form.product_id}
             onChange={set("product_id")}
-            disabled={products.length === 0}
-            aria-invalid={!!shownErrors.product_id}
-            aria-describedby={describedBy("product_id", ids.product)}
-            className={inputClass(shownErrors.product_id)}
-          >
-            <option value="" disabled>
-              {products.length ? "เลือกเมนู" : "กำลังโหลดเมนู…"}
-            </option>
-            {groups.map(([category, items]) => (
-              <optgroup key={category} label={category}>
-                {items.map((p) => (
-                  <option key={p.product_id} value={p.product_id}>
-                    {p.product_name} · {formatBaht(p.price)}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
+            invalid={!!shownErrors.product_id}
+            describedBy={describedBy("product_id", ids.product)}
+            options={menuOptions}
+          />
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
           <Field id={ids.qty} label="จำนวน" error={shownErrors.qty}>
-            <input
+            <QtyStepper
               id={ids.qty}
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={MAX_QTY}
-              step={1}
               value={form.qty}
               onChange={set("qty")}
-              aria-invalid={!!shownErrors.qty}
-              aria-describedby={describedBy("qty", ids.qty)}
-              className={`${inputClass(shownErrors.qty)} tabular-nums`}
+              invalid={!!shownErrors.qty}
+              describedBy={describedBy("qty", ids.qty)}
             />
           </Field>
           <Field id={ids.payment} label="ชำระเงิน" error={shownErrors.payment_method}>
-            <select
+            <Select
               id={ids.payment}
+              block
+              label="ชำระเงิน"
               value={form.payment_method}
               onChange={set("payment_method")}
-              aria-invalid={!!shownErrors.payment_method}
-              aria-describedby={describedBy("payment_method", ids.payment)}
-              className={inputClass(shownErrors.payment_method)}
-            >
-              {PAYMENTS.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
+              invalid={!!shownErrors.payment_method}
+              describedBy={describedBy("payment_method", ids.payment)}
+              options={PAYMENTS.map((p) => ({ value: p, label: p }))}
+            />
           </Field>
         </div>
 
@@ -193,14 +220,24 @@ export default function SaleForm({ products, uid = "anonymous" }) {
         <button
           type="submit"
           disabled={saving}
-          className="h-10 w-full rounded-lg bg-chart text-sm font-semibold text-on-chart transition-[opacity,scale] active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
+          className="h-9 w-full rounded-lg bg-chart text-[13px] font-semibold text-on-chart transition-[opacity,scale] active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
         >
           {saving ? "กำลังบันทึก…" : "บันทึกยอดขาย"}
         </button>
 
         <p role="status" aria-live="polite" className="min-h-5 text-[13px]">
-          {status.kind === "success" && <span className="text-up">✓ {status.text}</span>}
-          {status.kind === "error" && <span className="font-medium text-down">✕ {status.text}</span>}
+          {status.kind === "success" && (
+            <span className="inline-flex animate-fade-in items-start gap-1.5 text-ink">
+              <CheckIcon className="mt-px size-4 shrink-0 text-chart" />
+              {status.text}
+            </span>
+          )}
+          {status.kind === "error" && (
+            <span className="inline-flex animate-fade-in items-start gap-1.5 font-medium text-down">
+              <AlertIcon className="mt-px size-4 shrink-0" />
+              {status.text}
+            </span>
+          )}
         </p>
       </form>
     </Card>
