@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, Segmented, prefersReducedMotion } from "./ui.jsx";
-import MarbleArt from "./MarbleArt.jsx";
 import { formatBaht, formatDate, formatMonth, formatNumber } from "../lib/metrics.js";
 
 // เล่นย้อนหลังทีละสัปดาห์ ความเร็วปกติ 1 สัปดาห์ = 250ms (ข้อมูล ~77 สัปดาห์ ≈ 20 วินาที)
@@ -277,7 +276,7 @@ function Scrubber({ frames, t, onSeek, markers }) {
           value={t}
           onChange={(e) => onSeek(Number(e.target.value))}
           aria-label="เลื่อนเวลา"
-          aria-valuetext={`สัปดาห์ ${formatDate(frame.key)} ถึง ${formatDate(frame.end)}`}
+          aria-valuetext={`ช่วง ${formatDate(frame.key)} ถึง ${formatDate(frame.end)}`}
           className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
         />
       </div>
@@ -417,8 +416,8 @@ export default function ReplayCard({ frames, branchInfo, onClose }) {
 
   const kpis = [
     { label: "ยอดขายสะสม", value: formatBaht(now.totals.revenue) },
-    { label: "จำนวนบิลสะสม", value: formatNumber(now.totals.orders) },
-    { label: "ลูกค้าสมาชิกสะสม", value: formatNumber(now.totals.members) },
+    { label: "บิลสะสม", value: formatNumber(now.totals.orders) },
+    { label: "สมาชิกสะสม", value: formatNumber(now.totals.members) },
   ];
 
   return (
@@ -427,18 +426,22 @@ export default function ReplayCard({ frames, branchInfo, onClose }) {
       aria-label="ย้อนดูการเติบโตของเครือร้าน"
       onKeyDown={(e) => e.key === "Escape" && onClose()}
     >
-      {/* แถบหัวเป็นหินอ่อนดำ-ทองชุดเดียวกับหัวหน้า (มืดเสมอ: .theme-dark ให้ปุ่มในแถบใช้สีโหมดมืด) ปิดด้วยเส้นทองบาง */}
-      <div className="theme-dark relative overflow-hidden bg-[#070707]">
-        <MarbleArt className="absolute inset-0 size-full" />
+      {/* แถบหัวเป็นภาพบาร์ยามค่ำ (มืดเสมอ: .theme-dark ให้ปุ่มในแถบใช้สีโหมดมืด) */}
+      <div className="theme-dark relative overflow-hidden bg-[#110b07]">
+        <img
+          src={`${import.meta.env.BASE_URL}media/band-dusk-sm.webp`}
+          alt=""
+          className="absolute inset-0 size-full object-cover object-[50%_40%] opacity-80"
+        />
         <div
           aria-hidden="true"
-          className="absolute inset-y-0 left-0 w-full bg-gradient-to-r from-[#070707]/95 via-[#070707]/75 via-40% to-transparent sm:w-1/2"
+          className="absolute inset-y-0 left-0 w-full bg-gradient-to-r from-[#110b07]/95 via-[#110b07]/75 via-45% to-[#110b07]/20"
         />
       <div className="relative flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-5">
         <div>
           <h2 className="gold-text font-display pb-0.5 text-lg leading-tight font-semibold">ย้อนดูการเติบโต</h2>
           <p className="mt-0.5 text-[13px] text-ink-subtle">
-            {formatDate(frames[0].key)} – {formatDate(frames[maxT].end)} · ทีละสัปดาห์
+            {formatDate(frames[0].key)} – {formatDate(frames[maxT].end)} · ทีละอาทิตย์
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -452,7 +455,7 @@ export default function ReplayCard({ frames, branchInfo, onClose }) {
             <span key={playing ? "pause" : t >= maxT ? "replay" : "play"} className="inline-flex animate-pop">
               {playing ? <PauseIcon /> : t >= maxT ? <ReplayIcon /> : <PlayIcon />}
             </span>
-            {playing ? "หยุด" : t >= maxT ? "เล่นอีกครั้ง" : "เล่น"}
+            {playing ? "หยุด" : t >= maxT ? "เล่นอีกรอบ" : "เล่น"}
           </button>
           {/* ปุ่มปิดอยู่บนหินอ่อน: พื้นดำทึบ + ขอบทอง ไม่งั้นกลืนไปกับลายหิน */}
           <button
@@ -471,7 +474,7 @@ export default function ReplayCard({ frames, branchInfo, onClose }) {
       <div className="grid grid-cols-2 gap-px border-b border-line bg-line sm:grid-cols-4">
         <div className="bg-surface px-4 py-3 sm:px-5">
           <p className="text-xs font-medium text-ink-subtle">
-            สัปดาห์ {i + 1}/{frames.length}
+            อาทิตย์ที่ {i + 1}/{frames.length}
           </p>
           <p className="mt-0.5 w-fit text-2xl font-semibold tracking-tight tabular-nums"><span className="gold-text-data">{formatDate(frame.end)}</span></p>
         </div>
@@ -492,7 +495,7 @@ export default function ReplayCard({ frames, branchInfo, onClose }) {
         {mapped.length > 0 && (
           <figure
             role="img"
-            aria-label={`แผนที่สาขา ณ ${formatDate(frame.end)}: ${branches
+            aria-label={`แผนที่สาขา วันที่ ${formatDate(frame.end)}: ${branches
               .map((b) => `${b.branch} ${b.value == null ? "ยังไม่เปิด" : `${formatBaht(b.value)} ต่อวัน`}`)
               .join(", ")}`}
           >
@@ -510,7 +513,7 @@ export default function ReplayCard({ frames, branchInfo, onClose }) {
       </div>
 
       <p className="border-t border-line px-4 py-3 text-xs text-ink-muted sm:px-5">
-        ตัวเลขสะสมของสัปดาห์สุดท้ายเท่ากับ KPI ช่วง “ทั้งหมด” · ขนาดวงกลมและแท่ง = ยอดขายเฉลี่ยต่อวันใน 28 วันล่าสุด นับเฉพาะวันที่สาขาเปิดแล้ว · แผนที่และแม่น้ำเป็นภาพโดยประมาณ
+        ตัวเลขสะสมของอาทิตย์สุดท้ายจะเท่ากับ KPI ช่วง “ทั้งหมด” · วงกลมกับแท่งยิ่งใหญ่ ยิ่งขายต่อวันได้เยอะ (เฉลี่ย 28 วันล่าสุด นับแค่วันที่สาขาเปิดแล้ว) · แผนที่กับแม่น้ำวาดไว้คร่าว ๆ ไม่ได้ตรงเป๊ะ
       </p>
     </Card>
   );

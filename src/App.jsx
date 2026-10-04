@@ -6,9 +6,15 @@ import TopProductsCard from "./components/TopProductsCard.jsx";
 import ReplayCard from "./components/ReplayCard.jsx";
 import TracePanel from "./components/TracePanel.jsx";
 import ThemeToggle from "./components/ThemeToggle.jsx";
+import DataHeadline from "./components/DataHeadline.jsx";
+import RoastCalendarCard from "./components/RoastCalendarCard.jsx";
+import BranchRhythmCard from "./components/BranchRhythmCard.jsx";
+import MenuMatrixCard from "./components/MenuMatrixCard.jsx";
+import BillStory from "./components/story/BillStory.jsx";
+import HourClockCard from "./components/HourClockCard.jsx";
+import SectionBand from "./components/SectionBand.jsx";
 import { BeanIcon, Card, CalendarIcon, Collapsible, CupIcon, DripperIcon, LiveIcon, Segmented, Select, ShieldIcon, Skeleton, StoreIcon } from "./components/ui.jsx";
 import Logo from "./components/Logo.jsx";
-import MarbleArt from "./components/MarbleArt.jsx";
 import Lab2Page from "./lab2/Lab2Page.jsx";
 import CustomersView from "./components/CustomersView.jsx";
 // Lab 3 โหลดแบบ lazy: Firebase SDK จะถูกดาวน์โหลดเมื่อเปิดแท็บสด/ทดสอบ Rules เท่านั้น
@@ -24,6 +30,9 @@ import {
   revenueByBranch,
   topProducts,
   replayFrames,
+  drinkIds,
+  salesByHour,
+  dailyCalendar,
   formatDate,
   formatRange,
   RANGE_OPTIONS,
@@ -54,10 +63,14 @@ function useDashboardData() {
     const customerCsv = loadCsv(`${import.meta.env.BASE_URL}customers.csv`)
       .then((list) => list.filter((c) => c.customer_id))
       .catch(() => []);
-    Promise.all([loadCsv(`${import.meta.env.BASE_URL}sales.csv`), loadCsv(`${import.meta.env.BASE_URL}products.csv`), branchCsv, customerCsv])
-      .then(([sales, products, branchInfo, customers]) => {
+    // วันหยุดนักขัตฤกษ์ใช้ในเรื่องเล่าและปฏิทิน โหลดไม่ได้ก็แค่ไม่มีไฮไลต์วันหยุด
+    const holidayCsv = loadCsv(`${import.meta.env.BASE_URL}thai_holidays.csv`)
+      .then((list) => list.filter((h) => h.date))
+      .catch(() => []);
+    Promise.all([loadCsv(`${import.meta.env.BASE_URL}sales.csv`), loadCsv(`${import.meta.env.BASE_URL}products.csv`), branchCsv, customerCsv, holidayCsv])
+      .then(([sales, products, branchInfo, customers, holidayList]) => {
         const rows = prepareRows(sales);
-        if (rows.length === 0) throw new Error("ไฟล์ sales.csv ไม่มีข้อมูล");
+        if (rows.length === 0) throw new Error("ในไฟล์ sales.csv ไม่มีข้อมูลเลย");
         let first = rows[0].date;
         let last = rows[0].date;
         for (const r of rows) {
@@ -65,7 +78,8 @@ function useDashboardData() {
           if (r.date > last) last = r.date;
         }
         const branches = [...new Set(rows.map((r) => r.branch))].sort((a, b) => a.localeCompare(b, "th"));
-        setState({ status: "ready", rows, products, branchInfo, customers, first, last, branches });
+        const holidays = new Map(holidayList.map((h) => [h.date, h.holiday]));
+        setState({ status: "ready", rows, products, branchInfo, customers, first, last, branches, holidays });
       })
       .catch((err) => setState({ status: "error", message: err.message ?? String(err) }));
   }, []);
@@ -100,9 +114,9 @@ function LoadingState() {
 function ErrorState({ message }) {
   return (
     <Card className="px-5 py-8 text-center">
-      <p className="text-sm font-semibold text-ink">โหลดข้อมูลไม่สำเร็จ</p>
+      <p className="text-sm font-semibold text-ink">โหลดข้อมูลไม่ขึ้น</p>
       <p className="mx-auto mt-1 max-w-md text-[13px] text-ink-subtle">
-        {message}. ตรวจว่ามีไฟล์ <code>public/sales.csv</code> และ <code>public/products.csv</code> แล้วรีเฟรชหน้านี้
+        {message}. ลองดูว่ามีไฟล์ <code>public/sales.csv</code> กับ <code>public/products.csv</code> อยู่ไหม แล้วรีเฟรชหน้านี้ใหม่
       </p>
     </Card>
   );
@@ -151,6 +165,12 @@ function Dashboard({ data }) {
     [branchRows, range, granularity, data.first]
   );
 
+  const drinks = useMemo(() => drinkIds(data.products), [data.products]);
+  const holidaySet = useMemo(() => new Set(data.holidays.keys()), [data.holidays]);
+  // จังหวะของสาขาเทียบทุกสาขาเสมอ ใช้แค่ช่วงเวลาจากตัวกรอง
+  const rangeRows = useMemo(() => filterRows(data.rows, { ...range, branch: "all" }), [data.rows, range]);
+  const currentRows = useMemo(() => filterRows(data.rows, { ...range, branch }), [data.rows, range, branch]);
+
   const view = useMemo(() => {
     const current = filterRows(data.rows, { ...range, branch });
     const previous = range.previous ? filterRows(data.rows, { ...range.previous, branch }) : null;
@@ -166,8 +186,13 @@ function Dashboard({ data }) {
       previousSeries: previous ? timeSeries(previous, range.previous.start, range.previous.end, granularity) : null,
       branches: revenueByBranch(allBranches, allBranchesPrev || null),
       products: topProducts(current, data.products),
+      hours: salesByHour(current, drinks),
+      calendar: dailyCalendar(branchRows, range.start, range.end),
     };
-  }, [data, range, branch, granularity]);
+  }, [data, range, branch, granularity, drinks, branchRows]);
+  const peakHour = view.hours.some((h) => h.cups > 0)
+    ? view.hours.reduce((best, h) => (h.cups > view.hours[best].cups ? h.hour : best), 0)
+    : null;
 
   const rangeLabel = formatRange(range.start, range.end);
 
@@ -202,6 +227,19 @@ function Dashboard({ data }) {
 
   return (
     <>
+      <BillStory data={data} holidays={holidaySet} />
+
+      <DataHeadline
+        key={`${rangeKey}|${branch}`}
+        rangeLabel={RANGE_OPTIONS.find((o) => o.key === rangeKey).label}
+        branch={branch}
+        kpis={view.kpis}
+        previousKpis={view.previousKpis}
+        branches={view.branches}
+        topProduct={view.products[0]?.name}
+        peakHour={peakHour}
+      />
+
       {/* เปิดหน้า: แต่ละส่วนค่อย ๆ ลอยขึ้นตามลำดับ (เล่นครั้งเดียวตอนข้อมูลโหลดเสร็จ) */}
       <div className="flex animate-rise flex-wrap items-center gap-2">
         <Select
@@ -260,8 +298,27 @@ function Dashboard({ data }) {
       />
       </div>
 
+      <BranchRhythmCard rows={rangeRows} branchInfo={data.branchInfo} holidays={holidaySet} subtitle={rangeLabel} />
+
+      <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
+        <HourClockCard hours={view.hours} subtitle={branch === "all" ? "ทุกสาขา" : `สาขา${branch}`} />
+        <RoastCalendarCard
+          days={view.calendar}
+          holidays={data.holidays}
+          subtitle={`${branch === "all" ? "ทุกสาขา" : `สาขา${branch}`} · ${rangeLabel}`}
+        />
+      </div>
+
+      <SectionBand
+        images={{ light: "band-morning", dark: "band-dusk" }}
+        eyebrow={`${data.branches.length} สาขา · กรุงเทพฯ`}
+        title={["ห้าสาขา", "หนึ่งรสมือ"]}
+      >
+        <p className="band-text">สาขาไหนขายดี สาขาไหนต้องดูแลเพิ่ม แล้วแก้วไหนที่ลูกค้ากลับมาสั่งซ้ำ</p>
+      </SectionBand>
+
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="animate-rise" style={{ animationDelay: "140ms" }}>
+        <div>
         <BranchCard
           data={view.branches}
           subtitle={`ทุกสาขา · ${rangeLabel}`}
@@ -270,7 +327,7 @@ function Dashboard({ data }) {
           onTrace={(name) => openTrace("branch", { branch: name, fileTag: `branch_${branchTag(name)}` })}
         />
         </div>
-        <div className="animate-rise" style={{ animationDelay: "200ms" }}>
+        <div>
         <TopProductsCard
           data={view.products}
           subtitle={`${branch === "all" ? "ทุกสาขา" : `สาขา${branch}`} · ${rangeLabel}`}
@@ -284,6 +341,12 @@ function Dashboard({ data }) {
         />
         </div>
       </div>
+
+      <MenuMatrixCard
+        rows={currentRows}
+        products={data.products}
+        subtitle={`${branch === "all" ? "ทุกสาขา" : `สาขา${branch}`} · ${rangeLabel}`}
+      />
 
       {trace && <TracePanel spec={trace} rows={data.rows} onClose={() => setTrace(null)} />}
     </>
@@ -316,6 +379,18 @@ function useTab() {
   return [tab, change];
 }
 
+// แถบบนติดจอเสมอ: มีเงาและพื้นเบลอเมื่อเลื่อนลงจากบนสุดแล้ว
+function useScrolled() {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  return scrolled;
+}
+
 export default function App() {
   const data = useDashboardData();
   const [tab, setTab] = useTab();
@@ -325,6 +400,15 @@ export default function App() {
   // จอแคบแถบแท็บเลื่อนได้ เปิดลิงก์ #rules ตรง ๆ แท็บที่เลือกต้องไม่ซ่อนอยู่นอกจอ
   const tabBarRef = useRef(null);
   const tabBarScrolled = useRef(false);
+  const scrolled = useScrolled();
+  // ความสูงจริงของแถบบน (มือถือขึ้นสองบรรทัด) ให้ส่วนที่ติดจอ (sticky) ของเรื่องเล่าวางต่อใต้แถบพอดี
+  const headerRef = useRef(null);
+  useEffect(() => {
+    const el = headerRef.current;
+    const ro = new ResizeObserver(() => document.documentElement.style.setProperty("--bar-h", `${el.offsetHeight}px`));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   useEffect(() => {
     const bar = tabBarRef.current;
     const active = bar?.querySelector('[aria-checked="true"]');
@@ -338,55 +422,73 @@ export default function App() {
     tabBarScrolled.current = true;
   }, [tab]);
 
+  // เปลี่ยนแท็บขณะเลื่อนลงไปลึกแล้ว: พากลับขึ้นบนสุด ไม่ค้างกลางหน้าใหม่
+  const changeTab = (value) => {
+    setTab(value);
+    if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
-    <main className="min-h-screen px-4 py-6 sm:px-6 lg:py-8">
-      <div className="mx-auto max-w-6xl space-y-4">
-        {/* ภาพหินอ่อนดำ-ทองในกรอบทอง (มืดเสมอทั้งสองโหมด เหมือนภาพแขวนผนัง)
-            ตรา + ชื่อซ้าย, ข้อมูลล่าสุด + สวิตช์ธีมขวา · มือถือ: วันที่ลงไปแถวล่าง */}
-        <header className="gold-frame relative overflow-hidden rounded-[var(--radius-card)] bg-[#070707] shadow-[0_12px_32px_-18px_rgb(0_0_0/0.8)]">
-          <MarbleArt className="absolute inset-0 size-full" />
-          {/* เงาดำทางซ้ายให้ตรากับชื่ออ่านได้ทุกความกว้าง (จอแคบภาพถูกครอปจนริบบิ้นทองมาอยู่หลังชื่อ) */}
-          <div
-            aria-hidden="true"
-            className="absolute inset-y-0 left-0 w-full bg-gradient-to-r from-[#070707]/95 via-[#070707]/70 via-45% to-transparent sm:w-3/5"
-          />
-          <div className="relative flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-7 sm:px-7 sm:py-10">
-            <div className="mr-auto">
-              <Logo />
-            </div>
-            {data.status === "ready" && (
-              <p className="order-last w-fit rounded-full bg-[#0a0a0a]/75 px-3 py-1.5 text-[13px] text-[#cfc8ba] ring-1 ring-[#d2a958]/35 sm:order-none">
-                ข้อมูลล่าสุด <span className="font-medium text-[#f4eddc]">{formatDate(data.last)}</span> · {data.branches.length} สาขา
-              </p>
-            )}
-            <ThemeToggle />
+    <>
+      <header ref={headerRef} className={`top-bar ${scrolled ? "is-scrolled" : ""}`}>
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 sm:px-6">
+          <div className="mr-auto lg:mr-0">
+            <Logo />
           </div>
-        </header>
-
-        {!LAB3_TABS.includes(page) && data.status === "loading" && <LoadingState />}
-        {!LAB3_TABS.includes(page) && data.status === "error" && <ErrorState message={data.message} />}
-        {/* 5 แท็บกว้างเกินจอมือถือ ให้เลื่อนแถบแท็บแนวนอนแทนที่จะดันทั้งหน้า */}
-        <div ref={tabBarRef} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <Segmented label="หน้า" value={tab} onChange={setTab} options={TABS} />
+          {/* 5 แท็บกว้างเกินจอมือถือ ให้เลื่อนแถบแท็บแนวนอนแทนที่จะดันทั้งหน้า */}
+          <div ref={tabBarRef} className="order-last -mx-4 w-[calc(100%+2rem)] overflow-x-auto px-4 lg:order-none lg:mx-auto lg:w-auto lg:px-0">
+            <Segmented label="หน้า" value={tab} onChange={changeTab} options={TABS} />
+          </div>
+          {data.status === "ready" && (
+            <p className="hidden text-[13px] text-ink-subtle xl:block">
+              ข้อมูลล่าสุด <span className="font-medium text-ink">{formatDate(data.last)}</span> · {data.branches.length} สาขา
+            </p>
+          )}
+          <ThemeToggle />
         </div>
+      </header>
 
-        {LAB3_TABS.includes(page) ? (
-          <Suspense fallback={<Skeleton className="h-40 rounded-[var(--radius-card)] bg-surface" />}>
-            <Lab3Page view={page} />
-          </Suspense>
-        ) : data.status === "ready" &&
-          (page === "lab2" ? (
-            <Lab2Page rows={data.rows} products={data.products} />
-          ) : page === "customers" ? (
-            <CustomersView data={data} />
-          ) : (
-            <Dashboard data={data} />
-          ))}
+      <main className="relative px-4 pt-6 pb-6 sm:px-6 lg:pb-8">
+        <div className="mx-auto max-w-6xl space-y-4">
+          {!LAB3_TABS.includes(page) && data.status === "loading" && <LoadingState />}
+          {!LAB3_TABS.includes(page) && data.status === "error" && <ErrorState message={data.message} />}
 
-        <footer className="pt-2 text-xs text-ink-muted">
-          คำนวณจาก public/sales.csv · 1 แถว = 1 รายการสินค้า · ยอดขาย = qty × unit_price · ช่วงเวลานับถอยหลังจากวันล่าสุดในข้อมูล
-        </footer>
-      </div>
-    </main>
+          {/* key ตามแท็บ: เปลี่ยนหน้าแล้วเนื้อหาใหม่ลอยขึ้นพร้อมจางจากเบลอ */}
+          <div key={page} className="page-enter space-y-4">
+            {LAB3_TABS.includes(page) ? (
+              <Suspense fallback={<Skeleton className="h-40 rounded-[var(--radius-card)] bg-surface" />}>
+                <Lab3Page view={page} />
+              </Suspense>
+            ) : (
+              data.status === "ready" &&
+              (page === "lab2" ? (
+                <Lab2Page rows={data.rows} products={data.products} />
+              ) : page === "customers" ? (
+                <>
+                  <SectionBand
+                    images={{ light: "band-regulars-morning", dark: "band-regulars-dusk" }}
+                    eyebrow="ลูกค้า · สมาชิก"
+                    title={["แก้วประจำ", "ของคนประจำ"]}
+                  >
+                    <p className="band-text">ใครบ้างที่แวะมาทุกเช้า แล้วคนกลุ่มนี้ทำยอดให้ร้านได้เท่าไหร่</p>
+                  </SectionBand>
+                  <CustomersView data={data} />
+                </>
+              ) : (
+                <Dashboard data={data} />
+              ))
+            )}
+          </div>
+
+          <SectionBand images="origin" eyebrow="ต้นทาง · ดอยทางภาคเหนือ" title={["จากดอยทางเหนือ", "ถึงแก้วในกรุงเทพฯ"]} tall>
+            <p className="band-text">ตัวเลขทุกตัวในหน้านี้คิดมาจากไฟล์ข้อมูลของร้าน เปิด Excel เช็กเองได้เลย</p>
+          </SectionBand>
+
+          <footer className="pt-2 text-xs text-ink-muted">
+            คิดจาก public/sales.csv · 1 แถว = 1 รายการ · ยอดขาย = qty × unit_price · ช่วงเวลานับย้อนจากวันล่าสุดที่มีข้อมูล
+          </footer>
+        </div>
+      </main>
+    </>
   );
 }

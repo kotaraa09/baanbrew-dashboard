@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { flushSync } from "react-dom";
+import { prefersReducedMotion } from "./ui.jsx";
 
 const STORAGE_KEY = "baanbrew-theme";
 
@@ -16,11 +18,28 @@ function currentTheme() {
 
 export default function ThemeToggle() {
   const [dark, setDark] = useState(() => currentTheme() === "dark");
+  // จุดที่กด (สวิตช์ย่อด้วย CSS zoom ทำให้ getBoundingClientRect คลาดเคลื่อนในบางเบราว์เซอร์ จึงจำพิกัดเมาส์/นิ้วไว้แทน)
+  const origin = useRef(null);
 
   const toggle = (e) => {
     const next = e.target.checked;
-    setDark(next);
-    document.documentElement.dataset.theme = next ? "dark" : "light";
+    const apply = () => {
+      flushSync(() => setDark(next));
+      document.documentElement.dataset.theme = next ? "dark" : "light";
+    };
+    // เปลี่ยนช่วงเวลาของร้าน: ธีมใหม่ขยายเป็นวงกลมออกจากสวิตช์จนเต็มจอ (View Transitions API)
+    // เบราว์เซอร์ที่ไม่รองรับ หรือผู้ใช้ลดการเคลื่อนไหว: สลับทันที
+    if (document.startViewTransition && !prefersReducedMotion()) {
+      const r = e.target.nextElementSibling.getBoundingClientRect();
+      const [x, y] = origin.current ?? [r.left + r.width / 2, r.top + r.height / 2];
+      origin.current = null;
+      const root = document.documentElement.style;
+      root.setProperty("--vt-x", `${x}px`);
+      root.setProperty("--vt-y", `${y}px`);
+      document.startViewTransition(apply);
+    } else {
+      apply();
+    }
     try {
       localStorage.setItem(STORAGE_KEY, next ? "dark" : "light");
     } catch {
@@ -31,7 +50,7 @@ export default function ThemeToggle() {
   return (
     <>
       <input className="dn-in" type="checkbox" id="dn-toggle" checked={dark} onChange={toggle} />
-      <label className="dn-switch" htmlFor="dn-toggle">
+      <label className="dn-switch" htmlFor="dn-toggle" onPointerDown={(e) => (origin.current = [e.clientX, e.clientY])}>
         <span className="dn-clouds" aria-hidden="true">
           <span className="dn-cloud dn-c1" />
           <span className="dn-cloud dn-c2" />

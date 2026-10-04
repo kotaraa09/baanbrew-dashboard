@@ -12,3 +12,6 @@ secrets/
 import-summary.json
 .firebase/
 *-debug.log
+design/
+e2e-results/
+e2e-report/

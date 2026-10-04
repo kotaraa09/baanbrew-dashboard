@@ -37,16 +37,16 @@ export function LogoMark({ className = "size-11" }) {
   );
 }
 
-// ตรา + ชื่อ ใช้บนภาพหินอ่อนของหัวหน้า (พื้นมืดเสมอ จึงใช้สีตายตัว) ชื่อเป็นทองโลหะ (.gold-text)
+// ตรา + ชื่อ ใช้บนวิดีโอของ hero ซึ่งเปลี่ยนตามธีม (เช้า = พื้นครีม, ค่ำ = พื้นเอสเปรสโซ) จึงใช้สีจาก token
 export default function Logo() {
   return (
     <div className="logo flex items-center gap-3">
-      <LogoMark className="size-12 shrink-0 drop-shadow-[0_2px_10px_rgb(0_0_0/0.8)] sm:size-14" />
+      <LogoMark className="size-9 shrink-0 sm:size-10" />
       <div className="leading-none">
-        <h1 className="gold-text font-display pb-1 text-[26px] leading-none font-semibold tracking-tight sm:text-[30px]">
+        <h1 className="font-display pb-0.5 text-[21px] leading-none font-semibold tracking-tight text-wordmark sm:text-[23px]">
           บ้านบรู<span className="sr-only"> Dashboard</span>
         </h1>
-        <p className="mt-1.5 text-[10px] font-medium tracking-[0.3em] text-[#b9b2a3] uppercase">
+        <p className="mt-1 text-[9px] font-medium tracking-[0.3em] text-ink-subtle uppercase">
           Baan Brew · Est. 2023
         </p>
       </div>

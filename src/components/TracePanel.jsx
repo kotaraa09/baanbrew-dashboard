@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Papa from "papaparse";
 import { Segmented } from "./ui.jsx";
 import {
@@ -59,7 +60,7 @@ function FilterSteps({ trace, spec }) {
   const total = trace.steps[0].count;
   const label = {
     all: { name: "sales.csv ทั้งหมด", detail: "1 แถว = 1 รายการสินค้า" },
-    date: { name: "ช่วงวันที่", detail: `LEFT(datetime, 10) อยู่ระหว่าง ${spec.start} ถึง ${spec.end}` },
+    date: { name: "ช่วงวันที่", detail: `LEFT(datetime, 10) ตั้งแต่ ${spec.start} ถึง ${spec.end}` },
     branch: { name: "สาขา", detail: `branch = ${spec.branch}` },
     product: { name: "เมนู", detail: `product_id = ${spec.productId} (${spec.productName})` },
   };
@@ -113,9 +114,9 @@ function formulaFor(kind, trace, extra) {
   switch (kind) {
     case "orders":
       return {
-        lines: [{ text: `นับ order_id ที่ไม่ซ้ำ จาก ${n} แถว` }, { text: `${formatNumber(kpis.orderCount)} บิล`, result: true }],
+        lines: [{ text: `นับ order_id ที่ไม่ซ้ำกัน จาก ${n} แถว` }, { text: `${formatNumber(kpis.orderCount)} บิล`, result: true }],
         note: kpis.orderCount
-          ? `บิลหนึ่งมีเฉลี่ย ${(rows.length / kpis.orderCount).toFixed(2)} รายการ ถ้านับแถวจะได้ ${n} ซึ่งไม่ใช่จำนวนบิล`
+          ? `บิลหนึ่งมีเฉลี่ย ${(rows.length / kpis.orderCount).toFixed(2)} รายการ ถ้าไปนับแถวจะได้ ${n} แต่นั่นไม่ใช่จำนวนบิล`
           : null,
       };
     case "aov":
@@ -125,42 +126,42 @@ function formulaFor(kind, trace, extra) {
           { text: `÷ จำนวนบิล ${formatNumber(kpis.orderCount)} บิล` },
           { text: formatBahtExact(kpis.avgOrderValue), result: true },
         ],
-        note: "หารด้วยจำนวนบิล ไม่ใช่จำนวนแถว ถ้าหารด้วยแถวจะได้ยอดเฉลี่ยต่อรายการสินค้าแทน",
+        note: "ต้องหารด้วยจำนวนบิล ไม่ใช่จำนวนแถว ถ้าหารด้วยแถวจะกลายเป็นยอดเฉลี่ยต่อรายการแทน",
       };
     case "members":
       return {
         lines: [
-          { text: `${n} แถว มี customer_id ${formatNumber(withCustomer)} แถว, ว่าง (ลูกค้าทั่วไป) ${formatNumber(rows.length - withCustomer)} แถว` },
-          { text: `นับ customer_id ที่ไม่ซ้ำ ไม่นับค่าว่าง` },
+          { text: `จาก ${n} แถว มี customer_id ${formatNumber(withCustomer)} แถว อีก ${formatNumber(rows.length - withCustomer)} แถวว่าง (ลูกค้าทั่วไป)` },
+          { text: `นับ customer_id ที่ไม่ซ้ำกัน ไม่นับช่องว่าง` },
           { text: `${formatNumber(kpis.memberCount)} คน`, result: true },
         ],
-        note: "สมาชิกคนเดียวซื้อหลายครั้งนับเป็น 1 คน",
+        note: "สมาชิกคนเดียวมาซื้อกี่ครั้งก็นับเป็น 1 คน",
       };
     case "branch":
       return {
         lines: [
-          { text: `ผลรวม qty × unit_price ของ ${n} แถว` },
+          { text: `รวม qty × unit_price ของทั้ง ${n} แถว` },
           { text: formatBahtExact(kpis.totalRevenue), result: true },
         ],
         note: extra.chainRevenue
-          ? `คิดเป็น ${formatPercent((kpis.totalRevenue / extra.chainRevenue) * 100)} ของยอดขายทุกสาขา ${formatBaht(extra.chainRevenue)} ในช่วงเดียวกัน`
+          ? `เท่ากับ ${formatPercent((kpis.totalRevenue / extra.chainRevenue) * 100)} ของยอดขายทุกสาขารวมกัน (${formatBaht(extra.chainRevenue)}) ในช่วงเดียวกัน`
           : null,
       };
     case "product":
       return {
         lines: [
-          { text: `ผลรวม qty × unit_price ของ ${n} แถว` },
+          { text: `รวม qty × unit_price ของทั้ง ${n} แถว` },
           { text: formatBahtExact(kpis.totalRevenue), result: true },
         ],
-        note: `ขายได้ทั้งหมด ${formatNumber(qty)} ชิ้น (ผลรวม qty) ราคาต่อชิ้นอาจต่ำกว่าราคาเมนูในช่วงโปรฯ 1 แถม 1`,
+        note: `ขายไปทั้งหมด ${formatNumber(qty)} ชิ้น (รวม qty) ช่วงที่มีโปร 1 แถม 1 ราคาต่อชิ้นอาจต่ำกว่าราคาในเมนู`,
       };
     default:
       return {
         lines: [
-          { text: `ผลรวม qty × unit_price ของ ${n} แถว` },
+          { text: `รวม qty × unit_price ของทั้ง ${n} แถว` },
           { text: formatBahtExact(kpis.totalRevenue), result: true },
         ],
-        note: "คูณ qty กับ unit_price ทีละแถวก่อนแล้วค่อยรวม เพราะบางแถวซื้อมากกว่า 1 ชิ้น",
+        note: "คูณ qty กับ unit_price ทีละแถวก่อนแล้วค่อยรวม เพราะบางแถวซื้อไปมากกว่า 1 ชิ้น",
       };
   }
 }
@@ -169,7 +170,7 @@ function formulaFor(kind, trace, extra) {
 
 function SampleRows({ rows, highlight }) {
   const sample = rows.slice(0, SAMPLE_SIZE);
-  if (!sample.length) return <p className="text-[13px] text-ink-subtle">ไม่มีแถวที่ตรงเงื่อนไข</p>;
+  if (!sample.length) return <p className="text-[13px] text-ink-subtle">ไม่มีแถวไหนตรงเงื่อนไขเลย</p>;
   const hot = (c) => highlight.includes(c.key);
 
   return (
@@ -254,23 +255,23 @@ function VerifyYourself({ kind, spec, expected }) {
       />
       <div className="rounded-lg border border-line">
         <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-1.5">
-          <span className="text-xs text-ink-subtle">วางในเซลล์ว่างของชีต sales.csv</span>
+          <span className="text-xs text-ink-subtle">วางในช่องว่างช่องไหนก็ได้ในชีต sales.csv</span>
           <CopyButton text={formula} />
         </div>
         <code className="block px-3 py-2.5 font-mono text-[11.5px] leading-relaxed break-all text-ink">{formula}</code>
       </div>
       <p className="text-xs text-ink-subtle">
-        ควรได้ <span className="font-semibold text-ink tabular-nums">{expected}</span> ตรงกับ Dashboard
+        ควรได้ <span className="font-semibold text-ink tabular-nums">{expected}</span> เท่ากับใน Dashboard
       </p>
       <details className="group rounded-lg bg-surface-hover px-3 py-2 text-xs text-ink-subtle">
-        <summary className="cursor-pointer font-medium text-ink">หรือตรวจด้วย Pivot Table</summary>
+        <summary className="cursor-pointer font-medium text-ink">หรือจะเช็กด้วย Pivot Table ก็ได้</summary>
         <ol className="mt-2 list-decimal space-y-1 pl-4 leading-relaxed">
           <li>
-            เพิ่มคอลัมน์ <code className="font-mono text-ink">date</code> = <code className="font-mono text-ink">LEFT(B2,10)</code> และ{" "}
+            เพิ่มคอลัมน์ <code className="font-mono text-ink">date</code> = <code className="font-mono text-ink">LEFT(B2,10)</code> กับ{" "}
             <code className="font-mono text-ink">revenue</code> = <code className="font-mono text-ink">E2*F2</code>
           </li>
           <li>
-            สร้าง Pivot Table{flavor === "excel" && " (ติ๊ก “Add this data to the Data Model” เพื่อให้มี Distinct Count)"}
+            สร้าง Pivot Table{flavor === "excel" && " (ติ๊ก “Add this data to the Data Model” ด้วย ไม่งั้นจะไม่มี Distinct Count)"}
           </li>
           <li>
             Filter: date ตั้งแต่ {spec.start} ถึง {spec.end}
@@ -373,10 +374,11 @@ export default function TracePanel({ spec, rows, onClose }) {
     spec.productName,
   ].filter(Boolean);
 
-  return (
+  // portal ไป body: ถ้าอยู่ใต้ element ที่มี transform/filter แผง fixed จะถูกขังอยู่ในกรอบนั้นแทนเต็มจอ
+  return createPortal(
     <div className="fixed inset-0 z-50" onKeyDown={onKeyDown}>
       <div
-        className={`absolute inset-0 bg-black/30 ${closing ? "trace-backdrop-out" : "trace-backdrop-in"}`}
+        className={`absolute inset-0 bg-black/45 backdrop-blur-[2px] ${closing ? "trace-backdrop-out" : "trace-backdrop-in"}`}
         onClick={requestClose}
         aria-hidden="true"
       />
@@ -421,12 +423,12 @@ export default function TracePanel({ spec, rows, onClose }) {
           <Section step={1} title="กรองแถว">
             <FilterSteps trace={trace} spec={spec} />
           </Section>
-          <Section step={2} title="คำนวณ">
+          <Section step={2} title="วิธีคิด">
             <Formula {...formula} />
           </Section>
           <Section
             step={3}
-            title="แถวตัวอย่าง"
+            title="ตัวอย่างแถว"
             aside={
               <span className="text-xs text-ink-muted tabular-nums">
                 {Math.min(SAMPLE_SIZE, trace.rows.length)} จาก {formatNumber(trace.rows.length)} แถว
@@ -435,7 +437,7 @@ export default function TracePanel({ spec, rows, onClose }) {
           >
             <SampleRows rows={trace.rows} highlight={kind.columns} />
           </Section>
-          <Section step={4} title="ตรวจเองใน Excel / Google Sheets">
+          <Section step={4} title="เช็กเองใน Excel / Google Sheets">
             <VerifyYourself kind={spec.kind} spec={formulaSpec} expected={kind.value(trace)} />
           </Section>
         </div>
@@ -452,6 +454,7 @@ export default function TracePanel({ spec, rows, onClose }) {
           </button>
         </footer>
       </aside>
-    </div>
+    </div>,
+    document.body
   );
 }

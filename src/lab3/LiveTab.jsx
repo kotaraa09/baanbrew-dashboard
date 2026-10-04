@@ -45,21 +45,22 @@ const RANGES = [
   { value: "30d", label: "30 วัน", days: 30 },
 ];
 const HIGHLIGHT_MS = 4000;
+const NB = "\u00a0"; // ให้ตัวเลขกับหน่วยอยู่บรรทัดเดียวกัน
 const RECENT_LIMIT = 8;
 
 // error จาก Firestore → ข้อความภาษาไทยที่บอกว่าต้องแก้ที่ไหน
 function errorMessage(e) {
   switch (e.code) {
     case "permission-denied":
-      return "Security Rules ไม่อนุญาตให้อ่านยอดขาย (ล็อกอินแล้วหรือยัง? หรือ rules ปิดการอ่านไว้)";
+      return "Security Rules ไม่ให้อ่านยอดขาย (ล็อกอินแล้วหรือยัง หรือ rules ปิดไม่ให้อ่านอยู่)";
     case "failed-precondition":
-      return "query นี้ต้องมี index ใน Firestore ก่อน ดูลิงก์สร้าง index ใน console ของเบราว์เซอร์";
+      return "query นี้ต้องสร้าง index ใน Firestore ก่อน ลิงก์สร้าง index อยู่ใน console ของเบราว์เซอร์";
     case "resource-exhausted":
-      return "ใช้โควตาอ่านฟรีของวันนี้หมดแล้ว รอรีเซ็ต (ตามเวลาแปซิฟิก) หรือเลือกช่วงที่สั้นลง";
+      return "โควตาอ่านฟรีของวันนี้หมดแล้ว รอให้รีเซ็ต (ตามเวลาแปซิฟิก) หรือเลือกช่วงให้สั้นลง";
     case "unavailable":
-      return "เชื่อมต่อ Firestore ไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่";
+      return "ต่อ Firestore ไม่ได้ เช็กอินเทอร์เน็ตแล้วลองใหม่";
     default:
-      return `อ่านข้อมูลไม่สำเร็จ: ${e.message}`;
+      return `อ่านข้อมูลไม่ได้: ${e.message}`;
   }
 }
 
@@ -211,7 +212,7 @@ function RecentTable({ rows, products, fresh }) {
 
   return (
     <Card>
-      <CardHeader title="รายการล่าสุด" subtitle={`${RECENT_LIMIT} รายการล่าสุดในช่วงที่เลือก · แถวที่เพิ่งเข้ามาจะไฮไลต์ 4 วินาที`} />
+      <CardHeader title="รายการล่าสุด" subtitle={`${RECENT_LIMIT} รายการหลังสุดในช่วงที่เลือก · แถวที่เพิ่งเข้ามาจะไฮไลต์ไว้ 4${NB}วินาที`} />
       {recent.length === 0 ? (
         <p className="px-5 py-8 text-center text-[13px] text-ink-subtle">ยังไม่มีรายการในช่วงนี้</p>
       ) : (
@@ -293,12 +294,12 @@ function LiveDashboard({ user }) {
             options={[{ value: "all", label: "ทุกสาขา" }, ...BRANCHES.map((b) => ({ value: b, label: b }))]}
           />
           <p className="text-[13px] text-ink-subtle">{rangeLabel}</p>
-          <p className="ml-auto flex items-center gap-2 text-[13px] text-ink-subtle" title="รวมจำนวนเอกสารจากทุก snapshot ตั้งแต่เปิดหน้านี้">
+          <p className="ml-auto flex items-center gap-2 text-[13px] text-ink-subtle" title="นับเอกสารที่อ่านจากทุก snapshot ตั้งแต่เปิดหน้านี้">
             <span className="relative flex size-2" aria-hidden="true">
               {live.status === "ready" && <span className="absolute inset-0 animate-ping rounded-full bg-chart opacity-60 [animation-duration:2.4s]" />}
               <span className={`relative size-2 rounded-full ${live.status === "ready" ? "bg-chart" : live.status === "error" ? "bg-down" : "bg-line-strong"}`} />
             </span>
-            {live.status === "ready" ? "สด" : live.status === "error" ? "ขาดการเชื่อมต่อ" : "กำลังเชื่อมต่อ"}
+            {live.status === "ready" ? "สด" : live.status === "error" ? "เชื่อมต่อไม่ได้" : "กำลังเชื่อมต่อ"}
             <span className="text-ink-muted">· อ่านเอกสารไปแล้ว</span>
             <span className="font-medium text-ink tabular-nums">{formatNumber(live.reads)}</span>
           </p>
@@ -329,7 +330,7 @@ function LiveDashboard({ user }) {
               </div>
               <div className="border-t border-line px-2 pt-4 pb-2 sm:px-3">
                 <p className="mb-3 text-xs text-ink-subtle">
-                  {range.days === 1 ? "ยอดขายรายชั่วโมง" : "ยอดขายรายวัน"} · {scope} · {rangeLabel}
+                  {range.days === 1 ? "ยอดขายแต่ละชั่วโมง" : "ยอดขายแต่ละวัน"} · {scope} · {rangeLabel}
                 </p>
                 {view.rows.length === 0 ? (
                   <div className="flex h-64 flex-col items-center justify-center rounded-lg bg-surface-hover text-center">
@@ -337,8 +338,8 @@ function LiveDashboard({ user }) {
                     <p className="text-sm font-medium text-ink">ยังไม่มียอดขาย{range.days === 1 ? "วันนี้" : "ในช่วงนี้"}</p>
                     <p className="mt-1 max-w-xs text-[13px] text-ink-subtle">
                       {range.days === 1
-                        ? "ข้อมูลที่นำเข้าจบที่เมื่อวาน ยอดของวันนี้จะขึ้นเมื่อบันทึกจากฟอร์ม"
-                        : "ลองเลือกช่วงที่ยาวขึ้น หรือเปลี่ยนเป็นทุกสาขา"}
+                        ? "ข้อมูลที่ import มามีถึงเมื่อวาน ยอดวันนี้จะขึ้นตอนบันทึกจากฟอร์ม"
+                        : "ลองเลือกช่วงให้ยาวขึ้น หรือเปลี่ยนเป็นทุกสาขาดู"}
                     </p>
                   </div>
                 ) : (
@@ -415,7 +416,7 @@ export default function LiveTab() {
   if (user === undefined) {
     return (
       <p role="status" className="py-10 text-center text-[13px] text-ink-subtle">
-        กำลังตรวจสอบการเข้าสู่ระบบ…
+        กำลังเช็กว่าล็อกอินอยู่ไหม…
       </p>
     );
   }

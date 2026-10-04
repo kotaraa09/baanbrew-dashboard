@@ -11,9 +11,11 @@
     "seed:dry": "node scripts/seed.mjs --dry-run",
     "seed": "node --env-file=.env scripts/seed.mjs",
     "verify-import": "node --env-file=.env scripts/verify-import.mjs",
-    "create-test-user": "node --env-file=.env scripts/create-test-user.mjs"
+    "create-test-user": "node --env-file=.env scripts/create-test-user.mjs",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
+    "d3-shape": "^3.2.0",
     "firebase": "^12.19.0",
     "papaparse": "^5.4.1",
     "react": "^19.1.0",
@@ -21,6 +23,7 @@
     "recharts": "^3.1.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.1.0",
     "@vitejs/plugin-react": "^5.0.0",
     "firebase-admin": "^14.5.0",

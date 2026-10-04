@@ -11,7 +11,9 @@ import { formatBaht, formatBahtShort, formatDate } from "../lib/metrics.js";
 const MAIN = "var(--color-chart-bar)";
 const tick = { fontSize: 12, fill: "var(--color-ink-subtle)" };
 const pct = (n) => `${(n * 100).toFixed(1)}%`;
-const times = (a, b) => `${(a / b).toFixed(1)} เท่า`;
+// เว้นวรรคแบบไม่ตัดบรรทัด ให้ตัวเลขกับหน่วยอยู่บรรทัดเดียวกัน
+const NB = "\u00a0";
+const times = (a, b) => `${(a / b).toFixed(1)}${NB}เท่า`;
 
 // กรอบของทุกกราฟ: ข้อสรุป 1 บรรทัด + กราฟเต็มพื้นที่ที่เหลือ
 function Frame({ summary, children }) {
@@ -47,7 +49,7 @@ export function FixedChart1({ rows, products }) {
   const all = useMemo(() => revenueByProduct(rows, products), [rows, products]);
   const top = all.slice(0, 10);
   const [first, second] = all;
-  const summary = `${first.name} ขายดีที่สุด ${pct(first.share)} ของยอดขาย · ${times(first.revenue, second.revenue)}ของอันดับ 2 (${second.name}) · 10 อันดับแรกจาก ${all.length} เมนู`;
+  const summary = `${first.name} ขายดีสุด ได้ ${pct(first.share)} ของยอดขาย · เป็น ${times(first.revenue, second.revenue)}ของอันดับ 2 (${second.name}) · ตรงนี้คือ 10 อันดับแรกจาก ${all.length}${NB}เมนู`;
   return (
     <Frame summary={summary}>
       <BarChart data={top} layout="vertical" margin={{ left: 4, right: 56 }}>
@@ -71,8 +73,8 @@ export function FixedChart2({ rows }) {
   const max = data[0];
   const min = data[data.length - 1];
   const fullDays = Math.max(...data.map((d) => d.days));
-  const summary = `${max.branch}ขายได้มากที่สุด ${times(max.revenue, min.revenue)}ของ${min.branch}${
-    min.days < fullDays ? ` แต่${min.branch}เปิดขายมาแค่ ${min.days} วัน (สาขาอื่นราว ${fullDays} วัน)` : ""
+  const summary = `${max.branch}ขายได้เยอะสุด เป็น ${times(max.revenue, min.revenue)}ของ${min.branch}${
+    min.days < fullDays ? ` แต่${min.branch}เพิ่งเปิดมาแค่ ${min.days}${NB}วัน (สาขาอื่นราว ๆ ${fullDays}${NB}วัน)` : ""
   }`;
   return (
     <Frame summary={summary}>
@@ -82,7 +84,7 @@ export function FixedChart2({ rows }) {
         <YAxis domain={[0, "auto"]} tickFormatter={formatBahtShort} tick={tick} tickLine={false} axisLine={false} width={56} />
         <Tooltip
           cursor={{ fill: "var(--color-surface-hover)" }}
-          content={<Tip title={(d) => `สาขา${d.branch}`} lines={(d) => [["ยอดขายรวม", formatBaht(d.revenue)], ["วันที่เปิดขาย", `${d.days} วัน`]]} />}
+          content={<Tip title={(d) => `สาขา${d.branch}`} lines={(d) => [["ยอดขายรวม", formatBaht(d.revenue)], ["เปิดขายมา", `${d.days}${NB}วัน`]]} />}
         />
         <Bar dataKey="revenue" fill={MAIN} radius={[4, 4, 0, 0]} isAnimationActive={false}>
           <LabelList dataKey="revenue" position="top" formatter={formatBaht} style={{ fontSize: 12, fill: "var(--color-ink)" }} />
@@ -110,8 +112,8 @@ export function FixedChart3({ rows }) {
   const early = avg(data.slice(0, n));
   const late = avg(data.slice(-n));
   const change = ((late - early) / early) * 100;
-  const summary = `ยอดต่อสัปดาห์${change >= 0 ? "โตขึ้น" : "ลดลง"} ${Math.abs(change).toFixed(0)}% จาก ${formatBaht(early)} (${n} สัปดาห์แรก) เป็น ${formatBaht(late)} (${n} สัปดาห์ล่าสุด)${
-    openings.length ? ` · ส่วนหนึ่งมาจากการเปิดสาขา${openings.map((o) => o.branch).join(", ")}` : ""
+  const summary = `ยอดต่ออาทิตย์${change >= 0 ? "โตขึ้น" : "ลดลง"} ${Math.abs(change).toFixed(0)}% จาก ${formatBaht(early)} (${n}${NB}อาทิตย์แรก) เป็น ${formatBaht(late)} (${n}${NB}อาทิตย์หลังสุด)${
+    openings.length ? ` · ส่วนหนึ่งเพราะเปิดสาขา${openings.map((o) => o.branch).join(", ")}` : ""
   }`;
   // ป้ายแกน X: สัปดาห์แรกของแต่ละไตรมาส อ่านง่ายไม่เบียด
   const ticks = data.filter((w, i) => i === 0 || (w.week.slice(5, 7) !== data[i - 1].week.slice(5, 7) && ["01", "04", "07", "10"].includes(w.week.slice(5, 7)))).map((w) => w.week);
@@ -124,7 +126,7 @@ export function FixedChart3({ rows }) {
         <YAxis domain={[0, "auto"]} tickFormatter={formatBahtShort} tick={tick} tickLine={false} axisLine={false} width={56} />
         <Tooltip
           cursor={{ stroke: "var(--color-line-strong)" }}
-          content={<Tip title={(d) => `7 วันเริ่ม ${formatDate(d.week)}`} lines={(d) => [["ยอดขาย", formatBaht(d.revenue)]]} />}
+          content={<Tip title={(d) => `7${NB}วันตั้งแต่ ${formatDate(d.week)}`} lines={(d) => [["ยอดขาย", formatBaht(d.revenue)]]} />}
         />
         {openings.map((o) => (
           <ReferenceLine key={o.branch} x={o.week} stroke="var(--color-ink-muted)" strokeDasharray="4 4"
@@ -145,9 +147,9 @@ export function FixedChart4({ rows }) {
   const last = data[data.length - 1];
   const prev = data[data.length - 2];
   const change = ((last.perDay - prev.perDay) / prev.perDay) * 100;
-  const verdict = Math.abs(change) < 5 ? "ยอดไม่ได้ตก" : change > 0 ? "ยอดดีขึ้น" : "ยอดลดลงจริง";
-  const summary = `${verdict} · ${thaiMonth(last.month)} ขายได้ ${formatBaht(last.perDay)}/วัน ${change >= 0 ? "สูงกว่า" : "ต่ำกว่า"} ${thaiMonth(prev.month)} (${formatBaht(prev.perDay)}/วัน) ${Math.abs(change).toFixed(1)}%${
-    last.partial ? ` · ยอดรวมดูต่ำเพราะมีข้อมูลแค่ ${last.days} จาก ${last.full} วัน` : ""
+  const verdict = Math.abs(change) < 5 ? "ยอดไม่ได้ตก" : change > 0 ? "ยอดดีขึ้น" : "ยอดตกจริง";
+  const summary = `${verdict} · ${thaiMonth(last.month)} ขายได้วันละ ${formatBaht(last.perDay)} ${change >= 0 ? "สูงกว่า" : "ต่ำกว่า"} ${thaiMonth(prev.month)} (วันละ ${formatBaht(prev.perDay)}) ${Math.abs(change).toFixed(1)}%${
+    last.partial ? ` · ยอดรวมดูต่ำเพราะมีข้อมูลแค่ ${last.days} จาก ${last.full}${NB}วัน` : ""
   }`;
   return (
     <Frame summary={summary}>
@@ -158,9 +160,9 @@ export function FixedChart4({ rows }) {
         <Tooltip
           cursor={{ fill: "var(--color-surface-hover)" }}
           content={<Tip title={(d) => thaiMonth(d.month)} lines={(d) => [
-            ["ยอดเฉลี่ยต่อวัน", formatBaht(d.perDay)],
+            ["เฉลี่ยวันละ", formatBaht(d.perDay)],
             ["ยอดรวม", formatBaht(d.revenue)],
-            ["วันที่มีข้อมูล", `${d.days} / ${d.full} วัน`],
+            ["มีข้อมูล", `${d.days} / ${d.full}${NB}วัน`],
           ]} />}
         />
         <Bar dataKey="perDay" fill={MAIN} radius={[4, 4, 0, 0]} isAnimationActive={false}>
@@ -186,9 +188,9 @@ export function FixedChart5({ rows }) {
     const own = monthlyRevenue(rows.filter((r) => r.branch === lowest.branch)).filter((m) => m.days >= daysInMonth(m.month) - 1);
     return own.reduce((a, b) => (b.perDay < a.perDay ? b : a), own[0]);
   }, [rows, lowest.branch]);
-  const summary = `เทียบยอดต่อวันแล้ว ${lowest.branch}ต่ำสุด ${formatBaht(lowest.perDay)}/วัน${
-    worst ? ` แต่ ${thaiMonth(worst.month)} เหลือแค่ ${formatBaht(worst.perDay)}/วัน` : ""
-  } · ควรดูทำเลและฤดูกาลก่อนสรุปผลงานผู้จัดการ`;
+  const summary = `เทียบยอดต่อวันแล้ว ${lowest.branch}ต่ำสุด วันละ ${formatBaht(lowest.perDay)}${
+    worst ? ` แต่ช่วง ${thaiMonth(worst.month)} เหลือแค่วันละ ${formatBaht(worst.perDay)}` : ""
+  } · ดูทำเลกับฤดูกาลก่อน แล้วค่อยตัดสินผู้จัดการ`;
   return (
     <Frame summary={summary}>
       <BarChart data={data} layout="vertical" margin={{ left: 4, right: 120 }}>
@@ -197,9 +199,9 @@ export function FixedChart5({ rows }) {
         <Tooltip
           cursor={{ fill: "var(--color-surface-hover)" }}
           content={<Tip title={(d) => `สาขา${d.branch}`} lines={(d) => [
-            ["ยอดเฉลี่ยต่อวัน", formatBaht(d.perDay)],
+            ["เฉลี่ยวันละ", formatBaht(d.perDay)],
             ["ยอดรวม", formatBaht(d.revenue)],
-            ["วันที่เปิดขาย", `${d.days} วัน`],
+            ["เปิดขายมา", `${d.days}${NB}วัน`],
           ]} />}
         />
         <Bar dataKey="perDay" fill={MAIN} radius={[0, 4, 4, 0]} isAnimationActive={false}>

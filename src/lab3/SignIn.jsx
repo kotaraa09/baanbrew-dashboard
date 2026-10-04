@@ -18,33 +18,33 @@ import LoginCat from "./LoginCat.jsx";
 export function authErrorMessage(e) {
   switch (e.code) {
     case "auth/unauthorized-domain":
-      return `โดเมน ${window.location.hostname} ยังไม่ได้รับอนุญาต เพิ่มใน Firebase console → Authentication → Settings → Authorized domains`;
+      return `โดเมน ${window.location.hostname} ยังไม่ได้รับอนุญาต ไปเพิ่มใน Firebase console → Authentication → Settings → Authorized domains`;
     case "auth/operation-not-allowed":
-      return "ยังไม่ได้เปิดวิธีล็อกอินนี้ใน Firebase console → Authentication → Sign-in method";
+      return "ยังไม่ได้เปิดวิธีล็อกอินนี้ ไปเปิดใน Firebase console → Authentication → Sign-in method";
     case "auth/popup-blocked":
-      return "เบราว์เซอร์บล็อกหน้าต่างล็อกอิน อนุญาต popup สำหรับเว็บนี้แล้วกดอีกครั้ง";
+      return "เบราว์เซอร์บล็อกหน้าต่างล็อกอินไว้ อนุญาต popup ของเว็บนี้แล้วกดใหม่อีกที";
     case "auth/popup-closed-by-user":
     case "auth/cancelled-popup-request":
-      return "ปิดหน้าต่างล็อกอินก่อนเสร็จ กดเข้าสู่ระบบอีกครั้งได้เลย";
+      return "หน้าต่างล็อกอินปิดไปก่อนเสร็จ กดเข้าสู่ระบบใหม่ได้เลย";
     // Firebase รวมอีเมลไม่มีในระบบกับรหัสผิดเป็น error เดียว เพื่อไม่บอกคนนอกว่าอีเมลไหนมีบัญชี
     case "auth/invalid-credential":
     case "auth/wrong-password":
     case "auth/user-not-found":
       return "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
     case "auth/invalid-email":
-      return "รูปแบบอีเมลไม่ถูกต้อง";
+      return "อีเมลพิมพ์ไม่ถูกรูปแบบ";
     case "auth/missing-password":
-      return "กรอกรหัสผ่าน";
+      return "ยังไม่ได้ใส่รหัสผ่าน";
     case "auth/email-already-in-use":
-      return "อีเมลนี้มีบัญชีอยู่แล้ว เปลี่ยนไปที่ “เข้าสู่ระบบ” แทน";
+      return "อีเมลนี้มีบัญชีแล้ว สลับไปที่ “เข้าสู่ระบบ” แทน";
     case "auth/weak-password":
-      return "รหัสผ่านต้องยาวอย่างน้อย 6 ตัวอักษร";
+      return "รหัสผ่านต้องมีอย่างน้อย 6 ตัว";
     case "auth/too-many-requests":
-      return "ลองหลายครั้งเกินไป รอสักครู่แล้วลองใหม่";
+      return "ลองบ่อยเกินไป รอสักพักแล้วค่อยลองใหม่";
     case "auth/network-request-failed":
-      return "เชื่อมต่ออินเทอร์เน็ตไม่ได้ ลองใหม่อีกครั้ง";
+      return "ต่ออินเทอร์เน็ตไม่ได้ ลองใหม่อีกที";
     default:
-      return `เข้าสู่ระบบไม่สำเร็จ: ${e.message}`;
+      return `เข้าสู่ระบบไม่ได้: ${e.message}`;
   }
 }
 
@@ -156,12 +156,12 @@ export function SignInCard({ success = false }) {
 
   const reset = run("reset", async () => {
     if (!email.trim()) {
-      setMessage({ tone: "error", text: "กรอกอีเมลก่อน แล้วกด “ลืมรหัสผ่าน” อีกครั้ง" });
+      setMessage({ tone: "error", text: "ใส่อีเมลก่อน แล้วกด “ลืมรหัสผ่าน” อีกที" });
       return;
     }
     await sendPasswordResetEmail(auth, email.trim());
     // ข้อความเดียวกันไม่ว่าอีเมลจะมีบัญชีหรือไม่ ไม่บอกคนนอกว่าใครเป็นสมาชิก
-    setMessage({ tone: "ok", text: `ถ้า ${email.trim()} มีบัญชีอยู่ จะได้รับลิงก์ตั้งรหัสผ่านใหม่ทางอีเมล` });
+    setMessage({ tone: "ok", text: `ถ้า ${email.trim()} มีบัญชีอยู่ จะได้ลิงก์ตั้งรหัสผ่านใหม่ทางอีเมล` });
   });
 
   return (
@@ -169,8 +169,8 @@ export function SignInCard({ success = false }) {
     <Card className="relative mx-auto mt-32 max-w-sm animate-rise px-6 py-7">
       <LoginCat ref={cat} mode={catMode} />
       <div className="text-center">
-        <h1 className="text-base font-semibold text-ink">เข้าสู่ระบบเพื่อดูยอดขายสด</h1>
-        <p className="mt-1 text-[13px] text-ink-subtle">ยอดขายเปิดให้เฉพาะผู้ที่ล็อกอิน และทุกรายการที่บันทึกจะผูกกับบัญชีของคุณ</p>
+        <h1 className="text-base font-semibold text-ink">ล็อกอินเพื่อดูยอดขายสด</h1>
+        <p className="mt-1 text-[13px] text-ink-subtle">ยอดขายดูได้เฉพาะคนที่ล็อกอิน และทุกรายการที่บันทึกจะผูกกับบัญชีของคุณ</p>
       </div>
 
       <div className="mt-5 mb-4 flex justify-center">
@@ -227,7 +227,7 @@ export function SignInCard({ success = false }) {
             />
             <button
               type="button"
-              aria-label={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
+              aria-label={showPassword ? "ซ่อนรหัสผ่าน" : "ดูรหัสผ่าน"}
               aria-pressed={showPassword}
               aria-controls={ids.password}
               // ไม่ให้ปุ่มแย่ง focus จากช่องรหัสผ่าน หางแมวจะได้ไม่เด้งออกจากตาทุกครั้งที่กด
@@ -238,7 +238,7 @@ export function SignInCard({ success = false }) {
               {showPassword ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
             </button>
           </div>
-          {signup && <p className="mt-1 text-xs text-ink-muted">อย่างน้อย 6 ตัวอักษร · จะส่งลิงก์ยืนยันไปที่อีเมลนี้</p>}
+          {signup && <p className="mt-1 text-xs text-ink-muted">อย่างน้อย 6 ตัว · เดี๋ยวจะส่งลิงก์ยืนยันไปที่อีเมลนี้</p>}
         </div>
         {signup && (
           <div className="animate-fade-in">
@@ -264,7 +264,7 @@ export function SignInCard({ success = false }) {
             {confirmMismatch && (
               <p id={`${ids.confirm}-hint`} className="mt-1 flex items-center gap-1 text-xs text-down">
                 <AlertIcon className="size-3.5 shrink-0" />
-                รหัสผ่านสองช่องไม่ตรงกัน
+                รหัสผ่านไม่ตรงกัน
               </p>
             )}
             {!confirmMismatch && confirmMatches && (
@@ -280,7 +280,7 @@ export function SignInCard({ success = false }) {
           disabled={!!busy}
           className="h-9 w-full rounded-lg bg-chart text-[13px] font-semibold text-on-chart transition-[opacity,scale] active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
         >
-          {busy === "email" ? "กำลังดำเนินการ…" : mode === "signin" ? "เข้าสู่ระบบ" : "สมัครสมาชิก"}
+          {busy === "email" ? "รอสักครู่…" : mode === "signin" ? "เข้าสู่ระบบ" : "สมัครสมาชิก"}
         </button>
       </form>
 
@@ -300,7 +300,7 @@ export function SignInCard({ success = false }) {
         {busy === "google" ? "กำลังเปิดหน้าต่างล็อกอิน…" : "เข้าสู่ระบบด้วย Google"}
       </button>
 
-      <Message message={success ? { tone: "ok", text: "เข้าสู่ระบบแล้ว กำลังเปิดยอดขาย…" } : message} className="mt-4 text-center" />
+      <Message message={success ? { tone: "ok", text: "ล็อกอินแล้ว กำลังเปิดยอดขาย…" } : message} className="mt-4 text-center" />
     </Card>
   );
 }
@@ -315,7 +315,7 @@ export function VerifyEmailCard({ user, onVerified }) {
     setMessage(null);
     try {
       await sendEmailVerification(user);
-      setMessage({ tone: "ok", text: "ส่งลิงก์ยืนยันอีกครั้งแล้ว ดูในกล่องจดหมาย (และโฟลเดอร์สแปม)" });
+      setMessage({ tone: "ok", text: "ส่งลิงก์ยืนยันไปอีกรอบแล้ว ดูในกล่องจดหมาย (เช็กโฟลเดอร์สแปมด้วย)" });
     } catch (e) {
       setMessage({ tone: "error", text: authErrorMessage(e) });
     } finally {
@@ -329,7 +329,7 @@ export function VerifyEmailCard({ user, onVerified }) {
     try {
       await user.reload();
       if (!user.emailVerified) {
-        setMessage({ tone: "error", text: "ยังไม่ได้ยืนยัน กดลิงก์ในอีเมลก่อน แล้วกดปุ่มนี้อีกครั้ง" });
+        setMessage({ tone: "error", text: "ยังไม่ได้ยืนยัน กดลิงก์ในอีเมลก่อน แล้วค่อยกดปุ่มนี้อีกที" });
         return;
       }
       // ขอ token ใหม่ ไม่งั้น Security Rules ยังเห็น email_verified = false จาก token เดิม
@@ -344,9 +344,9 @@ export function VerifyEmailCard({ user, onVerified }) {
 
   return (
     <Card className="mx-auto max-w-sm animate-rise px-6 py-7 text-center">
-      <h1 className="text-base font-semibold text-ink">ยืนยันอีเมลก่อนใช้งาน</h1>
+      <h1 className="text-base font-semibold text-ink">ยืนยันอีเมลก่อนเริ่มใช้</h1>
       <p className="mt-2 text-[13px] text-ink-subtle">
-        ส่งลิงก์ยืนยันไปที่ <span className="font-medium text-ink">{user.email}</span> แล้ว กดลิงก์ในอีเมล จากนั้นกลับมากดปุ่มด้านล่าง
+        ส่งลิงก์ยืนยันไปที่ <span className="font-medium text-ink">{user.email}</span> แล้ว กดลิงก์ในอีเมล แล้วกลับมากดปุ่มข้างล่างนี้
       </p>
       <div className="mt-5 space-y-2">
         <button
@@ -355,7 +355,7 @@ export function VerifyEmailCard({ user, onVerified }) {
           disabled={!!busy}
           className="h-9 w-full rounded-lg bg-chart text-[13px] font-semibold text-on-chart transition-[opacity,scale] active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
         >
-          {busy === "check" ? "กำลังตรวจ…" : "ยืนยันแล้ว เข้าใช้งาน"}
+          {busy === "check" ? "กำลังเช็ก…" : "ยืนยันแล้ว เข้าใช้งาน"}
         </button>
         <button
           type="button"
@@ -363,7 +363,7 @@ export function VerifyEmailCard({ user, onVerified }) {
           disabled={!!busy}
           className="h-9 w-full rounded-lg border border-line-strong bg-surface text-[13px] font-medium text-ink-subtle hover:bg-surface-hover hover:text-ink disabled:opacity-60"
         >
-          ส่งลิงก์อีกครั้ง
+          ส่งลิงก์อีกรอบ
         </button>
         <button type="button" onClick={() => signOut(auth)} className="h-9 w-full text-[13px] text-ink-muted hover:text-ink">
           ใช้บัญชีอื่น

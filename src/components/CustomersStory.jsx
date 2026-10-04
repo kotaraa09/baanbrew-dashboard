@@ -5,6 +5,8 @@ import { ACTIVE_DAYS } from "../lib/customerMetrics.js";
 import { formatBaht, formatMonth, formatNumber } from "../lib/metrics.js";
 
 const pct0 = (n) => `${Math.round(n * 100)}%`;
+// ช่องว่างแบบไม่ตัดบรรทัด: ตัวเลขกับหน่วยอยู่บรรทัดเดียวกันเสมอ
+const NB = "\u00a0";
 
 // แบ่ง 100 ช่องตามสัดส่วน โดยปัดแบบ largest remainder ให้รวมได้ 100 พอดี
 function toHundred(counts) {
@@ -95,9 +97,9 @@ export default function CustomersStory({ view, data }) {
   // ตอน 6: กลุ่มที่ใหญ่ที่สุดของแต่ละมิติ
   const biggest = (list) => [...list].sort((a, b) => b.members - a.members)[0];
   const facts = [
-    { label: "ช่วงอายุที่มีมากที่สุด", top: biggest(segments.age), list: segments.age, unit: "ปี" },
+    { label: "ช่วงอายุที่เจอเยอะสุด", top: biggest(segments.age), list: segments.age, unit: "ปี" },
     { label: "เพศ", top: biggest(segments.gender), list: segments.gender, unit: "" },
-    { label: "สาขาที่มีสมาชิกมากที่สุด", top: biggest(segments.branch), list: segments.branch, unit: "" },
+    { label: "สาขาที่มีสมาชิกเยอะสุด", top: biggest(segments.branch), list: segments.branch, unit: "" },
   ];
 
   return (
@@ -108,11 +110,11 @@ export default function CustomersStory({ view, data }) {
         kicker="สมาชิกสำคัญแค่ไหน"
         title={(seen) => (
           <>
-            สมาชิก <span className="text-chart"><Count value={kpis.members} seen={seen} /> คน</span> สร้างยอดขาย{" "}
-            <span className="text-chart"><Count value={kpis.memberShare * 100} seen={seen} format={(v) => `${Math.round(v)}%`} /></span> ของร้าน
+            สมาชิก <span className="whitespace-nowrap text-chart"><Count value={kpis.members} seen={seen} /> คน</span> ทำยอดขายให้ร้านถึง{" "}
+            <span className="text-chart"><Count value={kpis.memberShare * 100} seen={seen} format={(v) => `${Math.round(v)}%`} /></span>
           </>
         )}
-        note="ลูกค้าทั่วไป = บิลที่ไม่มี customer_id (ไม่ได้สมัครสมาชิก)"
+        note="ลูกค้าทั่วไป คือบิลที่ไม่มี customer_id (ไม่ได้สมัครสมาชิก)"
       >
         {(seen) => (
           <>
@@ -127,8 +129,9 @@ export default function CustomersStory({ view, data }) {
               </div>
             </div>
             <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink-subtle">
-              เงินทุก 100 บาทที่เข้าร้าน มาจากสมาชิก {Math.round(kpis.memberShare * 100)} บาท ถ้าสมาชิกหายไป
-              ร้านจะเสียรายได้ส่วนนี้ไปด้วย
+              ทุก <span className="whitespace-nowrap">100 บาท</span>ที่ร้านได้ เป็นเงินจากสมาชิก{" "}
+              <span className="whitespace-nowrap">{Math.round(kpis.memberShare * 100)} บาท</span> ถ้าสมาชิกหายไป
+              รายได้ก้อนนี้ก็หายไปด้วย
             </p>
           </>
         )}
@@ -137,13 +140,13 @@ export default function CustomersStory({ view, data }) {
       {/* ตอน 2 */}
       <Chapter
         n={2}
-        kicker="สมาชิกกลับมาไหม"
+        kicker="สมาชิกกลับมาซื้ออีกไหม"
         title={() => (
           <>
-            สมาชิกที่เคยซื้อ 10 คน <span className="text-chart">กลับมาซื้อซ้ำ {repeatOf10} คน</span>
+            สมาชิกที่เคยซื้อ ทุก <span className="whitespace-nowrap">10 คน</span> <span className="text-chart">กลับมาซื้ออีก <span className="whitespace-nowrap">{repeatOf10} คน</span></span>
           </>
         )}
-        note={`กลับมาซื้อซ้ำ = มี 2 บิลขึ้นไป (${pct0(kpis.repeatRate)} ของสมาชิกที่เคยซื้อ) · ค่ากลาง ${medianBills} บิลต่อคน`}
+        note={`นับว่ากลับมาซื้อซ้ำถ้ามี 2${NB}บิลขึ้นไป (${pct0(kpis.repeatRate)} ของสมาชิกที่เคยซื้อ) · ค่ากลางอยู่ที่คนละ ${medianBills}${NB}บิล`}
       >
         {(seen) => (
           <div className="flex flex-wrap gap-2 sm:gap-3" role="img" aria-label={`${repeatOf10} ใน 10 คนกลับมาซื้อซ้ำ`}>
@@ -163,7 +166,7 @@ export default function CustomersStory({ view, data }) {
       {/* ตอน 3 */}
       <Chapter
         n={3}
-        kicker="สมาชิกซื้อเยอะกว่าไหม"
+        kicker="สมาชิกจ่ายเยอะกว่าไหม"
         title={() =>
           billClose ? (
             <>
@@ -175,7 +178,7 @@ export default function CustomersStory({ view, data }) {
             </>
           )
         }
-        note={`ยอดเฉลี่ยต่อบิล = ยอดขายรวม ÷ จำนวนบิล · ต่างกัน ${(Math.abs(billDiff) * 100).toFixed(1)}%`}
+        note={`จ่ายเฉลี่ยต่อบิล = ยอดขายรวม ÷ บิลทั้งหมด · ต่างกัน ${(Math.abs(billDiff) * 100).toFixed(1)}%`}
       >
         {(seen) => (
           <div className="grid gap-3 sm:grid-cols-3">
@@ -191,7 +194,7 @@ export default function CustomersStory({ view, data }) {
               </div>
             ))}
             <div className="rounded-xl bg-canvas px-5 py-4">
-              <p className="text-[13px] text-ink-subtle">สมาชิก 1 คนมาซื้อ</p>
+              <p className="text-[13px] text-ink-subtle">สมาชิกคนหนึ่งมาซื้อ</p>
               <p className="mt-1 text-3xl font-bold text-ink">
                 <Count value={medianBills} seen={seen} /> <span className="text-lg font-semibold">บิล</span>
               </p>
@@ -206,15 +209,16 @@ export default function CustomersStory({ view, data }) {
         kicker="ใครหายไปบ้าง"
         title={() => (
           <>
-            สมาชิก 100 คน ยังมาซื้ออยู่ <span className="text-chart">{activeDots} คน</span> อีก {lapsedDots + neverDots} คนหายไป
+            สมาชิกทุก <span className="whitespace-nowrap">100 คน</span> ยังมาซื้ออยู่ <span className="whitespace-nowrap text-chart">{activeDots} คน</span> อีก{" "}
+            <span className="whitespace-nowrap">{lapsedDots + neverDots} คน</span>หายไป
           </>
         )}
-        note={`ยังมาซื้ออยู่ = ซื้อครั้งล่าสุดไม่เกิน ${ACTIVE_DAYS} วันก่อนวันล่าสุดของข้อมูล · 1 จุด = สมาชิก 1% (${formatNumber(kpis.members / 100)} คน)`}
+        note={`ยังมาซื้ออยู่ คือซื้อครั้งล่าสุดไม่เกิน ${ACTIVE_DAYS}${NB}วัน นับย้อนจากวันสุดท้ายของข้อมูล · 1 จุด = สมาชิก 1% (${formatNumber(kpis.members / 100)}${NB}คน)`}
       >
         {(seen) => (
           <>
             <div className="grid max-w-md grid-cols-10 gap-1.5 sm:gap-2" role="img"
-              aria-label={`ยังมาซื้อ ${activeDots} ไม่ได้มาเกิน ${ACTIVE_DAYS} วัน ${lapsedDots} ไม่เคยซื้อ ${neverDots} จาก 100`}>
+              aria-label={`จากสมาชิก 100 คน ยังมาซื้ออยู่ ${activeDots} คน ไม่ได้มาเกิน ${ACTIVE_DAYS} วัน ${lapsedDots} คน สมัครแล้วไม่เคยซื้อ ${neverDots} คน`}>
               {dots.map((kind, i) => (
                 <span
                   key={i}
@@ -232,12 +236,12 @@ export default function CustomersStory({ view, data }) {
               ))}
             </div>
             <Legend items={[
-              { label: "ยังมาซื้ออยู่", value: `${formatNumber(activeCount)} คน`, swatch: "bg-chart" },
-              { label: `ไม่ได้มาเกิน ${ACTIVE_DAYS} วัน`, value: `${formatNumber(lapsedCount)} คน`, swatch: "bg-bar-muted" },
-              { label: "สมัครแล้วไม่เคยซื้อ", value: `${formatNumber(neverCount)} คน`, swatch: "shadow-[inset_0_0_0_2px_var(--color-bar-muted)]" },
+              { label: "ยังมาซื้ออยู่", value: `${formatNumber(activeCount)}${NB}คน`, swatch: "bg-chart" },
+              { label: `ไม่ได้มาเกิน ${ACTIVE_DAYS}${NB}วัน`, value: `${formatNumber(lapsedCount)}${NB}คน`, swatch: "bg-bar-muted" },
+              { label: "สมัครแล้วไม่เคยซื้อ", value: `${formatNumber(neverCount)}${NB}คน`, swatch: "shadow-[inset_0_0_0_2px_var(--color-bar-muted)]" },
             ]} />
             <p className="mt-4 max-w-2xl rounded-xl bg-canvas px-4 py-3 text-[15px] leading-relaxed text-ink">
-              💡 {formatNumber(lapsedCount + neverCount)} คนนี้รู้จักร้านแล้ว ส่งโปรฯ ชวนกลับมาได้เลย ง่ายกว่าหาลูกค้าใหม่
+              💡 <span className="whitespace-nowrap">{formatNumber(lapsedCount + neverCount)} คน</span>นี้รู้จักร้านอยู่แล้ว ส่งโปรฯ ชวนกลับมาได้เลย ง่ายกว่าไปหาลูกค้าใหม่
             </p>
           </>
         )}
@@ -246,20 +250,20 @@ export default function CustomersStory({ view, data }) {
       {/* ตอน 5 */}
       <Chapter
         n={5}
-        kicker="สมาชิกใหม่มาเร็วแค่ไหน"
+        kicker="ได้สมาชิกใหม่เยอะแค่ไหน"
         title={(seen) => (
           <>
-            ได้สมาชิกใหม่เดือนละ <span className="text-chart"><Count value={avgNew} seen={seen} /> คน</span>
-            {growth > 0.05 && <> เพิ่มจากช่วงแรก {pct0(growth)}</>}
+            ได้สมาชิกใหม่เดือนละ <span className="whitespace-nowrap text-chart"><Count value={avgNew} seen={seen} /> คน</span>
+            {growth > 0.05 && <> เพิ่มขึ้น {pct0(growth)} จากช่วงแรก</>}
           </>
         )}
-        note={`เฉลี่ย ${recent.length} เดือนล่าสุดที่ข้อมูลครบ เทียบกับ ${firstFull.length} เดือนแรก${
-          newMembers.at(-1)?.partial ? ` · ${formatMonth(`${newMembers.at(-1).month}-01`)} สีจาง เพราะมีข้อมูลแค่ ${newMembers.at(-1).days}/${newMembers.at(-1).fullDays} วัน` : ""
+        note={`เฉลี่ยจาก ${recent.length}${NB}เดือนล่าสุดที่ข้อมูลครบ เทียบกับ ${firstFull.length}${NB}เดือนแรก${
+          newMembers.at(-1)?.partial ? ` · ${formatMonth(`${newMembers.at(-1).month}-01`)} เป็นสีจาง เพราะมีข้อมูลแค่ ${newMembers.at(-1).days}/${newMembers.at(-1).fullDays}${NB}วัน` : ""
         }`}
       >
         {(seen) => (
           <>
-            <div className="flex h-36 items-end gap-1" role="img" aria-label={`สมาชิกใหม่รายเดือน เฉลี่ย ${formatNumber(avgNew)} คนต่อเดือน`}>
+            <div className="flex h-36 items-end gap-1" role="img" aria-label={`สมาชิกใหม่แต่ละเดือน เฉลี่ยเดือนละ ${formatNumber(avgNew)} คน`}>
               {newMembers.map((m, i) => (
                 <div key={m.month} className="group relative flex h-full flex-1 items-end">
                   <div
@@ -281,14 +285,14 @@ export default function CustomersStory({ view, data }) {
       {/* ตอน 6 */}
       <Chapter
         n={6}
-        kicker="สมาชิกของเราเป็นใคร"
+        kicker="สมาชิกเป็นใครบ้าง"
         title={() => (
           <>
-            ส่วนใหญ่อายุ <span className="text-chart">{facts[0].top.key} ปี</span> เป็น
+            ส่วนใหญ่อายุ <span className="whitespace-nowrap text-chart">{facts[0].top.key} ปี</span> เป็น
             <span className="text-chart">{facts[1].top.key}</span> และเป็นลูกค้าประจำสาขา<span className="text-chart">{facts[2].top.key}</span>
           </>
         )}
-        note="นับจากสมาชิกทั้งหมด (customers.csv) · แสดงเฉพาะตัวเลขรวมของแต่ละกลุ่ม ไม่แสดงข้อมูลรายคน (PDPA)"
+        note="นับจากสมาชิกทุกคนใน customers.csv · มีแค่ตัวเลขรวมของแต่ละกลุ่ม ไม่มีข้อมูลรายคน (PDPA)"
       >
         {(seen) => (
           <div className="grid gap-3 md:grid-cols-3">
@@ -322,7 +326,7 @@ export default function CustomersStory({ view, data }) {
       </Chapter>
 
       <p className="px-1 text-xs text-ink-muted">
-        ข้อมูลถึง {formatMonth(`${data.last.slice(0, 7)}-01`)} · public/customers.csv ตัดชื่อเล่นและเบอร์โทรออกแล้ว (PDPA)
+        ข้อมูลถึง {formatMonth(`${data.last.slice(0, 7)}-01`)} · ใน public/customers.csv ตัดชื่อเล่นกับเบอร์โทรออกแล้ว (PDPA)
       </p>
     </div>
   );

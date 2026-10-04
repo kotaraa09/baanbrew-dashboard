@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
-  LineChart,
+  ComposedChart,
+  Area,
   Line,
   XAxis,
   YAxis,
@@ -26,7 +27,7 @@ export const METRICS = [
     label: "ยอดขายรวม",
     format: formatBaht,
     axis: formatBahtShort,
-    definition: "ผลรวมของ qty × unit_price ทุกรายการสินค้าในช่วงที่เลือก",
+    definition: "เอา qty × unit_price ของทุกรายการในช่วงที่เลือกมารวมกัน",
   },
   {
     key: "orders",
@@ -34,7 +35,7 @@ export const METRICS = [
     label: "จำนวนบิล",
     format: formatNumber,
     axis: formatNumber,
-    definition: "จำนวน order_id ที่ไม่ซ้ำ บิลหนึ่งมีได้หลายรายการสินค้า จึงไม่ใช่จำนวนแถว",
+    definition: "นับ order_id ที่ไม่ซ้ำกัน บิลหนึ่งมีได้หลายรายการ เลยไม่เท่ากับจำนวนแถว",
   },
   {
     key: "aov",
@@ -50,7 +51,7 @@ export const METRICS = [
     label: "ลูกค้าสมาชิก",
     format: formatNumber,
     axis: formatNumber,
-    definition: "จำนวน customer_id ที่ไม่ซ้ำ ไม่นับลูกค้าทั่วไป (customer_id ว่าง) ในกราฟนับแยกแต่ละช่วงเวลา",
+    definition: "นับ customer_id ที่ไม่ซ้ำกัน ไม่นับลูกค้าทั่วไป (customer_id ว่าง) ส่วนในกราฟนับแยกทีละช่วง",
   },
 ];
 
@@ -70,7 +71,23 @@ const GRANULARITY = [
   { value: "month", label: "เดือน" },
 ];
 
-function MetricTab({ metric, kpis, previousKpis, selected, onSelect }) {
+// เส้นเล็กใต้ตัวเลข KPI: รูปทรงของช่วงที่เลือกตามความละเอียดเดียวกับกราฟหลัก (ตกแต่ง ตัวเลขจริงอยู่ในกราฟหลัก)
+function Sparkline({ values, selected }) {
+  if (values.length < 2) return null;
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const span = max - min || 1;
+  const pts = values.map((v, i) => [(i / (values.length - 1)) * 100, 22 - ((v - min) / span) * 20]);
+  const line = pts.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(2)} ${y.toFixed(2)}`).join(" ");
+  return (
+    <svg viewBox="0 0 100 24" preserveAspectRatio="none" className={`sparkline ${selected ? "is-selected" : ""}`} aria-hidden="true">
+      <path d={`${line} L100 24 L0 24Z`} className="sparkline-area" />
+      <path d={line} pathLength="1" className="sparkline-line" vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}
+
+function MetricTab({ metric, kpis, previousKpis, selected, onSelect, spark }) {
   const value = kpis[metric.kpi];
   // ตัวเลขนับไปหาค่าใหม่เมื่อเปลี่ยนช่วง/สาขา (เฉพาะการแสดงผล)
   const shown = useTweenedNumber(value);
@@ -110,11 +127,13 @@ function MetricTab({ metric, kpis, previousKpis, selected, onSelect }) {
         {metric.definition}
       </span>
       <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <span className="text-xl font-semibold tracking-tight text-ink tabular-nums sm:text-2xl">
+        <span className="font-numeral text-[26px] leading-tight font-normal tracking-tight text-ink tabular-nums sm:text-[32px]">
           {metric.format(shown)}
         </span>
         {previousKpis && <Change value={change} />}
       </span>
+      {/* key ใหม่เมื่อข้อมูลเปลี่ยน → เส้นวาดใหม่ */}
+      <Sparkline key={`${spark.length}-${spark.reduce((a, b) => a + b, 0)}`} values={spark} selected={selected} />
       <span
         aria-hidden="true"
         className={`absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-chart transition-[opacity,scale] duration-300 ease-[var(--ease-out)] ${
@@ -138,7 +157,7 @@ function TrendTooltip({ active, payload, metric, granularity, showAverage }) {
         <span className="flex items-center gap-1.5 text-ink-subtle">
           <span className={`h-0.5 w-3 rounded-full bg-chart ${showAverage ? "opacity-35" : ""}`} />
           {formatBucket(p.key, granularity)}
-          {p.partial && " (ไม่ครบช่วง)"}
+          {p.partial && " (วันไม่ครบ)"}
         </span>
         <span className={`tabular-nums ${showAverage ? "text-ink-subtle" : "font-medium text-ink"}`}>
           {metric.format(p.current)}
@@ -158,7 +177,7 @@ function TrendTooltip({ active, payload, metric, granularity, showAverage }) {
           <span className="flex items-center gap-1.5 text-ink-subtle">
             <span className="w-3 border-t-2 border-dashed border-chart-soft" />
             {formatBucket(p.previousKey, granularity)}
-            {p.previousPartial && " (ไม่ครบช่วง)"}
+            {p.previousPartial && " (วันไม่ครบ)"}
           </span>
           <span className="text-ink-subtle tabular-nums">{metric.format(p.previous ?? 0)}</span>
         </div>
@@ -221,6 +240,7 @@ export default function TrendCard({
               previousKpis={previousKpis}
               selected={m.key === metricKey}
               onSelect={() => onMetricChange(m.key)}
+              spark={series.map((bucket) => bucket[m.key])}
             />
             {onTrace && (
               <button
@@ -272,21 +292,21 @@ export default function TrendCard({
         {isEmpty ? (
           <div className="flex h-72 flex-col items-center justify-center rounded-lg bg-surface-hover text-center">
             <CupIcon className="mb-2 size-7 text-chart-soft" />
-            <p className="text-sm font-medium text-ink">ไม่มียอดขายในช่วงเวลานี้</p>
+            <p className="text-sm font-medium text-ink">ช่วงนี้ยังไม่มียอดขาย</p>
             <p className="mt-1 max-w-xs text-[13px] text-ink-subtle">
-              สาขานี้อาจยังไม่เปิดในช่วงที่เลือก ลองเลือกช่วงเวลาที่ยาวขึ้น หรือเปลี่ยนเป็นทุกสาขา
+              สาขานี้อาจยังไม่เปิดในช่วงที่เลือก ลองเลือกช่วงที่ยาวขึ้น หรือเปลี่ยนไปดูทุกสาขา
             </p>
           </div>
         ) : (
           <div
-            // key ใหม่ทุกครั้งที่ตัวชี้วัด/ช่วง/สาขาเปลี่ยน → กราฟใหม่ค่อย ๆ ปรากฏ (ตัวเส้นไม่วิ่ง ตามกติกา DESIGN.md)
+            // key ใหม่ทุกครั้งที่ตัวชี้วัด/ช่วง/สาขาเปลี่ยน → กราฟใหม่ค่อย ๆ ปรากฏ และเส้นหลักวาดจากซ้ายไปขวา
             key={`${metric.key}|${range.start}|${range.end}|${granularity}|${kpis.totalRevenue}|${kpis.orderCount}`}
-            className="h-72 animate-fade-in"
+            className="trend-draw h-80 animate-fade-in"
             role="img"
             aria-label={`กราฟ${metric.label} ${formatRange(range.start, range.end)}`}
           >
             <ResponsiveContainer>
-              <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+              <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid stroke="var(--color-line)" vertical={false} />
                 <XAxis
                   dataKey="key"
@@ -322,7 +342,23 @@ export default function TrendCard({
                     <stop offset=".84" stopColor="var(--lg-light)" />
                     <stop offset="1" stopColor="var(--lg-mid)" />
                   </linearGradient>
+                  {/* ครีม่าใต้เส้น: เข้มที่เส้นแล้วจางลงถึงแกน เหมือนชั้นฟองบนเอสเปรสโซ */}
+                  <linearGradient id="trend-crema" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stopColor="var(--color-chart)" stopOpacity="0.32" />
+                    <stop offset=".6" stopColor="var(--color-chart)" stopOpacity="0.08" />
+                    <stop offset="1" stopColor="var(--color-chart)" stopOpacity="0" />
+                  </linearGradient>
                 </defs>
+                {/* เส้นและพื้นครีม่าค่อย ๆ เผยจากซ้ายไปขวาทุกครั้งที่กราฟถูกสร้างใหม่ (.trend-draw ใน index.css)
+                    ใช้ CSS clip-path แทน animation ของ Recharts ซึ่งบางครั้งค้างที่เฟรมแรก */}
+                <Area
+                  type="monotone"
+                  dataKey={showAverage ? "average" : "current"}
+                  fill="url(#trend-crema)"
+                  stroke="none"
+                  activeDot={false}
+                  isAnimationActive={false}
+                />
                 {showPrevious && (
                   <Line
                     type="monotone"
@@ -355,7 +391,7 @@ export default function TrendCard({
                     stroke="url(#trend-gold)"
                     strokeWidth={2.5}
                     dot={false}
-                    activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--color-surface)" }}
+                    activeDot={{ r: 5, strokeWidth: 3, stroke: "var(--color-surface)" }}
                     isAnimationActive={false}
                   />
                 )}
@@ -377,22 +413,22 @@ export default function TrendCard({
                     dataKey="solid"
                     className="gold-line"
                     stroke="url(#trend-gold)"
-                    strokeWidth={2.25}
+                    strokeWidth={2.5}
                     dot={false}
-                    activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--color-surface)" }}
+                    activeDot={{ r: 5, strokeWidth: 3, stroke: "var(--color-surface)" }}
                     isAnimationActive={false}
                   />
                 )}
-              </LineChart>
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         )}
 
         <p className="mt-3 text-xs text-ink-muted">
           <span className="font-medium text-ink-subtle">{metric.label}:</span> {metric.definition}
-          {showAverage && " · เส้นเข้มคือค่าเฉลี่ย 7 วัน (วันนั้นกับ 6 วันก่อนหน้า) เส้นจางคือยอดรายวัน"}
-          {!showAverage && hasPartial && " · เส้นจุดคือช่วงที่มีวันไม่ครบ"}
-          {onTrace && " · กดไอคอนแว่นขยายที่ตัวเลขเพื่อดูที่มาและสูตรตรวจใน Excel"}
+          {showAverage && " · เส้นเข้มคือค่าเฉลี่ย 7 วัน (วันนั้นรวมกับ 6 วันก่อน) เส้นจางคือยอดแต่ละวัน"}
+          {!showAverage && hasPartial && " · เส้นจุดคือช่วงที่วันยังไม่ครบ"}
+          {onTrace && " · กดแว่นขยายตรงตัวเลขได้ จะเห็นว่าตัวเลขมาจากไหน พร้อมสูตรไว้เช็กใน Excel"}
         </p>
       </div>
     </Card>

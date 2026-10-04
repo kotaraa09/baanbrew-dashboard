@@ -1,56 +1,57 @@
 @import "tailwindcss";
 
-/* Tokens: "Black & Gold" ดำด้านเรียบ ๆ แบบมินิมอล ทองใช้น้อยที่สุด
-   ดำ/เทาเป็นกลาง (ไม่อมน้ำตาล), ทองมีแค่: ตรา, เส้นกราฟหลัก, สถานะที่เลือก, ปุ่มหลัก, เส้นทองบาง ๆ ใต้หัวหน้า
-   เขียว/แดงยังใช้กับการเปลี่ยนแปลงเท่านั้น
-   ค่าเริ่มต้น (ใน @theme) คือโหมดสว่าง (ขาวแบบหินอ่อน) ส่วนโหมดมืดอยู่ใต้ [data-theme="dark"] */
+/* Tokens: "Roast & Linen" — สองธีมคือสองช่วงเวลาของร้านเดียวกัน
+   สว่าง = เช้าที่บ้านบรู (ผ้าลินิน ผนังปูนครีม แดดเช้า) · มืด = ค่ำในโรงคั่ว (เอสเปรสโซ ไม้สัก แสงไฟอำพัน)
+   สีหลักคือ "ครีม่า" (คาราเมลของฟองเอสเปรสโซ) ไม่ใช่ทองโลหะ · เขียว/แดงยังใช้กับการเปลี่ยนแปลงเท่านั้น
+   ค่าเริ่มต้น (ใน @theme) คือโหมดสว่าง ส่วนโหมดมืดอยู่ใต้ [data-theme="dark"] */
 @theme {
   --font-sans: "Anuphan", "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
-  --font-display: "Trirong", "Anuphan", "Noto Serif Thai", serif; /* เฉพาะชื่อแบรนด์ */
+  --font-display: "Trirong", "Anuphan", "Noto Serif Thai", serif;
+  --font-numeral: "Fraunces", "Trirong", Georgia, serif; /* ตัวเลขใหญ่แบบนิตยสาร */
 
-  --color-canvas: #f4f3f0;
-  --color-surface: #ffffff;
-  --color-surface-hover: #f8f7f5;
-  --color-surface-selected: #f2f1ed;
-  --color-line: #e6e4df;
-  --color-line-strong: #cfccc5;
+  --color-canvas: #f3ede3;
+  --color-surface: #fffbf5;
+  --color-surface-hover: #f9f2e8;
+  --color-surface-selected: #f2e8da;
+  --color-line: #e8ddcd;
+  --color-line-strong: #d4c4ad;
 
-  --color-ink: #141414;
-  --color-ink-subtle: #5f5d58;
-  --color-ink-muted: #6d6b66;
+  --color-ink: #2a1b12;
+  --color-ink-subtle: #6b5646;
+  --color-ink-muted: #7c6756;
 
-  /* ทองโบราณ: บนพื้นขาวต้องเข้มพอให้เส้นกราฟและข้อความผ่าน contrast */
-  --color-chart: #94702a;
-  --color-chart-soft: #a88a50; /* ≥3:1 บนพื้นขาว */
-  --color-bar-muted: #dcd9d2;
-  --color-chart-bar: #b08a3e;
-  --color-on-chart: #1d1407; /* ตัวอักษรบนปุ่ม/แถบทอง (ทองโลหะสว่าง จึงใช้ตัวเข้มทั้งสองโหมด) */
+  /* คั่วกลาง: บนพื้นลินินต้องเข้มพอให้เส้นกราฟและข้อความผ่าน contrast */
+  --color-chart: #95562a;
+  --color-chart-soft: #b38763;
+  --color-bar-muted: #e6d9c6;
+  --color-chart-bar: #a8673a;
+  --color-on-chart: #fff8ee;
 
-  --color-up: #1d5a34;
-  --color-up-bg: #e1efe3;
-  --color-down: #8e2b1e;
-  --color-down-bg: #f7e1dc;
+  --color-up: #2f6a3c;
+  --color-up-bg: #e3efdf;
+  --color-down: #9a3420;
+  --color-down-bg: #f8e2d9;
 
-  --color-water: #e1e4e6; /* แม่น้ำบนแผนที่ Replay (ตกแต่ง ไม่ใช่ข้อมูล) */
-  --color-water-ink: #6d777d;
+  --color-water: #e2ddd3;
+  --color-water-ink: #7a7266;
 
-  /* ทองเปลวของตรา + สีชื่อแบรนด์ (สว่าง: ชื่อสีดำ ตราทองเข้ม · มืด: ทั้งคู่เป็นทอง) */
-  --color-gold: #b08d45;
-  --color-gold-hi: #d9bd7c;
-  --color-gold-lo: #7a5a22;
-  --color-wordmark: #141414;
+  --color-gold: #b9783f;
+  --color-gold-hi: #e3b07a;
+  --color-gold-lo: #7a4520;
+  --color-wordmark: #2a1b12;
 
-  --shadow-card: 0 1px 0 0 rgb(20 20 20 / 0.05), 0 1px 3px 0 rgb(20 20 20 / 0.07);
-  --radius-card: 12px;
+  --shadow-card: 0 1px 0 0 rgb(60 35 15 / 0.04), 0 8px 24px -16px rgb(60 35 15 / 0.25);
+  --radius-card: 16px;
 
   /* Motion: ease-out ตัวเดียวทั้งระบบ, ของเข้ายาวกว่าของออก, ไม่เด้ง */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --animate-rise: rise 520ms var(--ease-out) backwards;
-  --animate-fade-in: fade-in 320ms ease-out backwards;
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --animate-rise: rise 720ms var(--ease-out) backwards;
+  --animate-fade-in: fade-in 420ms ease-out backwards;
   --animate-pop: pop 280ms var(--ease-out);
 
   @keyframes rise {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(18px); filter: blur(4px); }
   }
   @keyframes fade-in {
     from { opacity: 0; }
@@ -61,42 +62,42 @@
 }
 
 
-/* โหมดมืด: ธีมหลักของแบรนด์ ดำด้าน + ทอง (ค่าเริ่มต้นเมื่อยังไม่เคยเลือก ดูสคริปต์ใน index.html)
+/* โหมดมืด: ค่ำในโรงคั่ว — น้ำตาลเอสเปรสโซเข้ม (ไม่ใช่ดำกลาง) + ครีม่าอำพัน
    เปลี่ยนแค่ token ส่วน component ใช้ var(--color-*) อยู่แล้วจึงเปลี่ยนตามเอง */
 :root[data-theme="dark"],
-.theme-dark { /* .theme-dark = ส่วนที่มืดเสมอแม้อยู่ในโหมดสว่าง (แถบหินอ่อนของ Replay) */
+.theme-dark { /* .theme-dark = ส่วนที่มืดเสมอแม้อยู่ในโหมดสว่าง (แถบหัวของ Replay) */
   color-scheme: dark;
-  --color-canvas: #0a0a0a;
-  --color-surface: #141414;
-  --color-surface-hover: #1b1b1b;
-  --color-surface-selected: #1f1f1f;
-  --color-line: #242424;
-  --color-line-strong: #383838;
+  --color-canvas: #110b07;
+  --color-surface: #1b130d;
+  --color-surface-hover: #231910;
+  --color-surface-selected: #2a1e14;
+  --color-line: #2f2319;
+  --color-line-strong: #473629;
 
-  --color-ink: #f4f2ee;
-  --color-ink-subtle: #a9a7a2;
-  --color-ink-muted: #8f8d88;
+  --color-ink: #f4eadc;
+  --color-ink-subtle: #c0ad98;
+  --color-ink-muted: #9d8a76;
 
-  --color-chart: #d4b26a;
-  --color-chart-soft: #8a7654;
-  --color-bar-muted: #3a3a3a;
-  --color-chart-bar: #c9a55a;
-  --color-on-chart: #1d1407;
+  --color-chart: #e0a76a;
+  --color-chart-soft: #8f6d4f;
+  --color-bar-muted: #3a2b20;
+  --color-chart-bar: #d3965a;
+  --color-on-chart: #1f1209;
 
-  --color-up: #8fcf9f;
-  --color-up-bg: #13261a;
-  --color-down: #e89a8f;
-  --color-down-bg: #2e1512;
+  --color-up: #9dd4a7;
+  --color-up-bg: #15271a;
+  --color-down: #f0a08f;
+  --color-down-bg: #321812;
 
-  --color-water: #1a1d1f;
-  --color-water-ink: #6f7a80;
+  --color-water: #1d1610;
+  --color-water-ink: #7d6c5c;
 
-  --color-gold: #d9b76e;
-  --color-gold-hi: #f6e3ad;
-  --color-gold-lo: #8f6b2c;
-  --color-wordmark: #d9b76e;
+  --color-gold: #e0a76a;
+  --color-gold-hi: #f6d4a6;
+  --color-gold-lo: #8a5428;
+  --color-wordmark: #f4eadc;
 
-  --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.06), 0 1px 2px 0 rgb(0 0 0 / 0.5);
+  --shadow-card: 0 0 0 1px rgb(255 230 200 / 0.05), 0 12px 30px -18px rgb(0 0 0 / 0.8);
 }
 :root { color-scheme: light; }
 html { transition: background-color 0.5s ease; }
@@ -209,24 +210,25 @@ html { transition: background-color 0.5s ease; }
    ทองแบนสีเดียวดูเหมือนสีน้ำตาล ทองที่ "ประกาย" ต้องมีช่วงมืด-สว่างสลับกันแบบแสงสะท้อนบนโลหะ
    ใช้ชุดสีเดียวกันทั้งระบบ: ตัวหนังสือชื่อแบรนด์, กรอบภาพหัวหน้า, เส้นใต้แท็บ, ปุ่มหลัก, แท่งกราฟ, เส้นกราฟ (SVG) */
 :root {
-  --gm-deep: #6e4c1a;
-  --gm-dark: #8f6726;
-  --gm-mid: #d2a958;
-  --gm-light: #f3dc9c;
-  --gm-shine: #fff6d6;
+  --gm-deep: #5a3418;
+  --gm-dark: #7d4a24;
+  --gm-mid: #c98b52;
+  --gm-light: #ebc596;
+  --gm-shine: #fae6c8;
   --gold-metal: linear-gradient(118deg, var(--gm-dark) 0%, var(--gm-mid) 18%, var(--gm-shine) 30%, var(--gm-mid) 42%, var(--gm-deep) 58%, var(--gm-mid) 76%, var(--gm-light) 90%, var(--gm-dark) 100%);
   /* สำหรับพื้นที่ที่มีตัวอักษรทับ: ช่วงมืดสุดตัดออก ตัวอักษรเข้มจึงอ่านได้ทุกจุด */
-  --gold-fill: linear-gradient(118deg, #b88a3c 0%, #e7c77f 28%, #f8e7b4 40%, #d3a95a 58%, #b3843a 78%, #e2c27a 100%);
+  --gold-fill: linear-gradient(118deg, #8f4f24 0%, #b06a35 35%, #c98450 55%, #a35f30 100%);
   --gold-hairline: linear-gradient(90deg, transparent, var(--gm-mid) 20%, var(--gm-shine) 50%, var(--gm-mid) 80%, transparent);
 
   /* ทองของกราฟ (เส้น/แท่ง) บนพื้นขาวต้องเข้มกว่า ไม่งั้นช่วงสว่างจะหายไปกับพื้น */
-  --lg-dark: #6e4c1a;
-  --lg-mid: #94702a;
-  --lg-light: #c29b4a;
-  --lg-shine: #d8b66a;
+  --lg-dark: #6e3c1c;
+  --lg-mid: #95562a;
+  --lg-light: #b97445;
+  --lg-shine: #cf8f5c;
 }
 :root[data-theme="dark"],
 .theme-dark {
+  --gold-fill: linear-gradient(118deg, #c98a52 0%, #e6b27a 38%, #f2cc9c 52%, #d59a5f 100%);
   --lg-dark: var(--gm-dark);
   --lg-mid: var(--gm-mid);
   --lg-light: var(--gm-light);
@@ -278,7 +280,7 @@ html { transition: background-color 0.5s ease; }
   background: var(--gold-hairline) top / 100% 1px no-repeat, var(--color-surface);
 }
 :root:not([data-theme="dark"]) .card-sheen {
-  background: linear-gradient(90deg, transparent, rgb(176 138 62 / 0.55) 50%, transparent) top / 100% 1px no-repeat, var(--color-surface);
+  background: linear-gradient(90deg, transparent, rgb(149 86 42 / 0.35) 50%, transparent) top / 100% 1px no-repeat, var(--color-surface);
 }
 
 /* กรอบทองรอบภาพหัวหน้า (เหมือนกรอบรูปภาพศิลปะบนผนัง) */
@@ -436,6 +438,500 @@ html { transition: background-color 0.5s ease; }
   30% { opacity: 1; }
   100% { opacity: 0; transform: translateY(-14px); }
 }
+
+/* =====================================================================
+   Roast & Linen: แถบบน, หัวเรื่องจากข้อมูล, ปฏิทินคั่ว, ภาพคั่นส่วน, ทรานสิชันเปลี่ยนธีม
+   ===================================================================== */
+
+/* เปลี่ยนธีม = เปลี่ยนช่วงเวลา: ธีมใหม่ขยายเป็นวงกลมออกจากสวิตช์ (จุดที่กด ดู ThemeToggle.jsx) */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-new(root) {
+  animation: vt-reveal 1000ms var(--ease-in-out);
+}
+@keyframes vt-reveal {
+  from { clip-path: circle(0 at var(--vt-x, 90%) var(--vt-y, 5%)); }
+  to { clip-path: circle(160vmax at var(--vt-x, 90%) var(--vt-y, 5%)); }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes line-up {
+  from { transform: translateY(115%) rotate(2.5deg); }
+  to { transform: none; }
+}
+@keyframes wave-sm { to { transform: translateX(12px); } }
+
+/* เกรนฟิล์มบาง ๆ ทับภาพ ให้ภาพ AI ดูเป็นภาพถ่ายฟิล์ม (และกลบ banding ของวิดีโอที่บีบอัด) */
+.grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.09;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: grain 900ms steps(3) infinite;
+}
+/* ขยับลายเกรนด้วย background-position (ไม่ใช่ transform ของทั้งชั้น ซึ่งทำให้เกิดเส้นดำที่ขอบกรอบโค้งบนมือถือ) */
+@keyframes grain {
+  0% { background-position: 0 0; }
+  33% { background-position: -37px 23px; }
+  66% { background-position: 29px -41px; }
+}
+
+/* ---------- แถบบน: ตรา · แท็บ · สวิตช์ธีม (ติดจอเสมอ) ---------- */
+.top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  padding: 12px 0;
+  background: color-mix(in oklab, var(--color-canvas) 0%, transparent);
+  transition: background-color 300ms ease, box-shadow 300ms ease, backdrop-filter 300ms ease;
+}
+.top-bar.is-scrolled {
+  background: color-mix(in oklab, var(--color-canvas) 84%, transparent);
+  backdrop-filter: blur(14px) saturate(1.3);
+  box-shadow: 0 1px 0 var(--color-line);
+}
+
+/* เปลี่ยนแท็บ: เนื้อหาใหม่ลอยขึ้นจากเบลอ */
+.page-enter { animation: rise 700ms var(--ease-out) backwards; }
+
+/* ---------- หัวเรื่องจากข้อมูล (DataHeadline.jsx) ---------- */
+.data-headline {
+  max-width: 34ch;
+  padding: 14px 0 8px;
+  font-family: var(--font-display);
+  font-size: clamp(26px, 3.4vw, 44px);
+  font-weight: 500;
+  line-height: 1.32;
+  letter-spacing: -0.01em;
+  color: var(--color-ink-subtle);
+  text-wrap: balance;
+}
+/* ชื่อสาขา/เมนู/ตัวเลขห้ามตัดกลางคำ (ตัวตัดคำภาษาไทยของเบราว์เซอร์ไม่รู้จักชื่อเฉพาะ) */
+.data-headline em {
+  white-space: nowrap;
+  font-style: normal;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.data-headline .headline-num {
+  font-family: var(--font-numeral);
+  font-weight: 400;
+  color: var(--color-chart);
+  font-variant-numeric: tabular-nums;
+}
+.headline-delta.is-up { color: var(--color-up); }
+.headline-delta.is-down { color: var(--color-down); }
+.headline-part {
+  display: inline;
+  animation: fade-up 800ms var(--ease-out) both;
+}
+
+/* ---------- ปฏิทินคั่ว: 5 ระดับ อ่อน → เข้ม (ธีมมืดกลับด้าน: ขายมาก = ครีม่าสว่าง) ---------- */
+:root {
+  --roast-0: var(--color-canvas);
+  --roast-1: #ecd8bb;
+  --roast-2: #d6ae7d;
+  --roast-3: #b47a46;
+  --roast-4: #8a4f26;
+  --roast-5: #4f2a13;
+}
+:root[data-theme="dark"] {
+  --roast-1: #3b2a1d;
+  --roast-2: #63432a;
+  --roast-3: #94643a;
+  --roast-4: #c98f55;
+  --roast-5: #f0c48c;
+}
+.roast-cell { position: relative; display: block; background: var(--roast-0); }
+/* วันหยุดนักขัตฤกษ์: จุดเล็กมุมขวาบน (ไม่ใช้สีอย่างเดียว ใช้รูปทรงด้วย) */
+.roast-cell.is-holiday::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: max(3px, 22%);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--color-ink);
+  box-shadow: 0 0 0 1.5px var(--color-surface);
+}
+.roast-cell[data-level="0"] { box-shadow: inset 0 0 0 1px var(--color-line); background: transparent; }
+.roast-cell[data-level="1"] { background: var(--roast-1); }
+.roast-cell[data-level="2"] { background: var(--roast-2); }
+.roast-cell[data-level="3"] { background: var(--roast-3); }
+.roast-cell[data-level="4"] { background: var(--roast-4); }
+.roast-cell[data-level="5"] { background: var(--roast-5); }
+/* ช่องในปฏิทินขึ้นเป็นคลื่นจากซ้ายไปขวา (--d ตั้งจากคอลัมน์/แถว) */
+.roast-cell.is-in { animation: roast-in 520ms var(--ease-out) var(--d, 0ms) backwards; }
+@keyframes roast-in {
+  from { opacity: 0; transform: scale(0.3); }
+}
+/* ช่องวันของปฏิทินแขวนผนัง: เลขวันที่มุมซ้ายบน สีตัวเลขตัดกับความเข้มของช่อง */
+.roast-day {
+  height: clamp(34px, 4.6vw, 52px);
+  padding: 4px 6px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--color-ink);
+  cursor: default;
+}
+:root:not([data-theme="dark"]) .roast-day[data-level="4"],
+:root:not([data-theme="dark"]) .roast-day[data-level="5"] { color: #fff8ee; }
+:root[data-theme="dark"] .roast-day[data-level="4"],
+:root[data-theme="dark"] .roast-day[data-level="5"] { color: #1f1209; }
+.roast-cell.is-focus { box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 3.5px var(--color-ink); }
+
+/* ---------- Sparkline ใน KPI ---------- */
+.sparkline {
+  display: block;
+  width: 100%;
+  height: 22px;
+  margin-top: 4px;
+  overflow: visible;
+}
+.sparkline-line {
+  fill: none;
+  stroke: var(--color-chart-soft);
+  stroke-width: 1.5;
+  animation: spark-draw 1100ms var(--ease-out) both;
+}
+.sparkline-area { fill: var(--color-chart); opacity: 0.06; }
+.sparkline.is-selected .sparkline-line { stroke: var(--color-chart); stroke-width: 2; }
+.sparkline.is-selected .sparkline-area { opacity: 0.14; }
+/* เส้นใช้ non-scaling-stroke ความยาวเส้นประจึงคลาดจาก pathLength เล็กน้อย: จบแล้วปลดเส้นประออก เส้นจะเต็มเสมอ */
+@keyframes spark-draw {
+  from { stroke-dasharray: 1; stroke-dashoffset: 1; }
+  99% { stroke-dasharray: 1; stroke-dashoffset: 0; }
+  to { stroke-dasharray: none; stroke-dashoffset: 0; }
+}
+
+/* ---------- เรื่องเล่า: 1 จุด = 1 บิล (story/BillStory.jsx) ---------- */
+:root { --dot: #b8977a; --dot-hi: #7a2f08; }
+:root[data-theme="dark"] { --dot: #7a5a45; --dot-hi: #f5bd7c; }
+.story { position: relative; }
+.story-stage {
+  position: sticky;
+  top: var(--bar-h, 64px);
+  height: calc(100svh - var(--bar-h, 64px));
+  overflow: hidden;
+}
+.story-canvas { position: absolute; inset: 0; }
+.story-labels { position: absolute; inset: 0; pointer-events: none; animation: fade-in 600ms ease-out 250ms both; }
+.story-row-label {
+  position: absolute;
+  transform: translate(-100%, -50%);
+  text-align: right;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--color-ink);
+  white-space: nowrap;
+}
+.story-row-label small { display: block; font-size: 11px; font-weight: 400; color: var(--color-ink-muted); }
+.story-tick {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: var(--color-ink-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.story-key {
+  position: absolute;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  font-size: 12px;
+  color: var(--color-ink-subtle);
+}
+.story-swatch { display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: var(--dot); }
+.story-swatch.is-hi { margin-left: 8px; background: var(--dot-hi); }
+.story-steps {
+  position: relative;
+  margin-top: calc(-1 * (100svh - var(--bar-h, 64px)));
+  pointer-events: none;
+}
+.story-step {
+  display: flex;
+  min-height: 100svh;
+  align-items: center;
+  padding: 0 0 0 4px;
+}
+.story-step:first-child { min-height: calc(100svh - var(--bar-h, 64px)); }
+.story-step:last-child { min-height: 115svh; }
+.story-card {
+  max-width: min(360px, 34vw);
+  padding: 20px 22px;
+  border-radius: 18px;
+  background: color-mix(in oklab, var(--color-surface) 88%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-card);
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--color-ink-subtle);
+  pointer-events: auto;
+  opacity: 0.35;
+  transform: translateY(12px);
+  transition: opacity 500ms ease, transform 700ms var(--ease-out);
+}
+.story-step.is-active .story-card { opacity: 1; transform: none; }
+.story-card b { font-weight: 600; color: var(--color-ink); white-space: nowrap; }
+.story-title { margin-bottom: 10px; font-size: clamp(28px, 3vw, 38px); font-weight: 600; line-height: 1.2; color: var(--color-ink); }
+.story-note { display: block; margin-top: 8px; font-size: 13px; color: var(--color-ink-muted); }
+.story-outro { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--color-line); font-size: 14px; color: var(--color-chart); }
+/* สรุปหลังดูจบ: ตัวเลขใหญ่ 5 ตัวแทนฉากจุดทั้งเรื่อง */
+.story-wrap { scroll-margin-top: var(--bar-h, 64px); }
+.story-recap {
+  display: grid;
+  gap: 22px;
+  margin: 8px 0 12px;
+  padding: 24px 28px;
+  border-radius: 20px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+.story-recap-head { display: grid; grid-template-columns: 1fr auto; align-items: end; column-gap: 16px; }
+.story-recap-head .story-replay { grid-column: 2; grid-row: 1 / span 2; }
+.story-recap-eyebrow { font-size: 12px; font-weight: 500; color: var(--color-chart); }
+.story-recap-title { margin: 4px 0 0; font-size: clamp(24px, 2.4vw, 32px); font-weight: 600; line-height: 1.2; color: var(--color-ink); }
+.story-replay {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-ink);
+  transition: background-color 200ms, scale 150ms;
+}
+.story-replay:hover { background: var(--color-surface-hover); }
+.story-replay:active { scale: 0.97; }
+.story-replay svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: rotate 500ms var(--ease-out); }
+.story-replay:hover svg { rotate: -200deg; }
+.story-recap-list { display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px 24px; }
+.story-recap-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 14px;
+  border-left: 2px solid var(--dot-hi);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-ink-subtle);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 500ms ease, transform 700ms var(--ease-out);
+}
+.story-recap.is-in .story-recap-list li { opacity: 1; transform: none; }
+.story-recap-list b { font-size: 30px; font-weight: 600; line-height: 1.1; color: var(--color-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 1023px) and (min-width: 768px) {
+  .story-recap-list { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 767px) {
+  .story-recap { padding: 20px; }
+  .story-recap-head { grid-template-columns: 1fr; }
+  .story-recap-head .story-replay { grid-column: 1; grid-row: auto; justify-self: start; margin-top: 14px; }
+  .story-recap-list { grid-template-columns: 1fr 1fr; }
+  .story-recap-list b { font-size: 26px; }
+}
+@media (max-width: 767px) {
+  .story-step { align-items: flex-end; padding: 0 0 4svh; }
+  .story-card { max-width: none; width: 100%; font-size: 15px; }
+}
+
+/* ---------- จังหวะของแต่ละสาขา (BranchRhythmCard.jsx) ---------- */
+.rhythm { display: block; overflow: visible; font-family: var(--font-sans); }
+.rhythm path, .rhythm line, .rhythm circle, .rhythm rect { transition: d 800ms var(--ease-out), cx 300ms var(--ease-out), cy 300ms var(--ease-out), x1 600ms var(--ease-out), x2 600ms var(--ease-out), x 600ms var(--ease-out); }
+.rhythm-grid { stroke: var(--color-line); stroke-dasharray: 2 4; }
+.rhythm-one { stroke: var(--color-ink-muted); }
+.rhythm-tick { font-size: 11px; fill: var(--color-ink-muted); font-variant-numeric: tabular-nums; }
+.rhythm-side-title { font-size: 11px; fill: var(--color-ink-subtle); }
+.ridge-mask { fill: var(--color-surface); }
+.ridge-line { fill: none; stroke: var(--color-chart); stroke-width: 1.8; stroke-linejoin: round; }
+.ridge-ghost { fill: none; stroke: var(--color-ink-muted); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.7; }
+.ridge-base { stroke: var(--color-line-strong); }
+.ridge-label { font-size: 13px; font-weight: 600; fill: var(--color-ink); }
+.ridge-sub { font-size: 11px; fill: var(--color-ink-muted); }
+.ridge-dot { fill: var(--color-surface); stroke: var(--color-ink); stroke-width: 1.5; }
+.ridge-value { font-size: 11px; font-weight: 600; fill: var(--color-ink); paint-order: stroke; stroke: var(--color-surface); stroke-width: 3px; font-variant-numeric: tabular-nums; }
+.rhythm-cursor { stroke: var(--color-ink); stroke-width: 1; opacity: 0.35; }
+.rhythm-cursor-label { font-size: 11px; font-weight: 600; fill: var(--color-ink); }
+.ratio-stem { stroke: var(--color-line-strong); stroke-width: 1.5; }
+.ratio-weekend { fill: var(--color-chart); }
+.ratio-holiday { fill: var(--color-ink); }
+.ratio-value { font-size: 11px; fill: var(--color-ink-subtle); font-variant-numeric: tabular-nums; }
+/* เข้าจอครั้งแรก: ภูเขาโผล่ทีละแถวจากบนลงล่าง เส้นวาดจากซ้ายไปขวา ตัวคูณเลื่อนออกจาก 1× */
+.rhythm .ridge, .rhythm .ratio-row { opacity: 0; }
+.rhythm.is-in .ridge { animation: fade-up 700ms var(--ease-out) calc(var(--i) * 110ms) both; }
+.rhythm.is-in .ridge-line { stroke-dasharray: 1; animation: spark-draw 1300ms var(--ease-out) calc(var(--i) * 110ms + 150ms) both; }
+.rhythm.is-in .ratio-row { animation: fade-up 600ms var(--ease-out) calc(500ms + var(--i) * 90ms) both; }
+.rhythm-table[open] summary { margin-bottom: 4px; }
+
+/* ---------- วิศวกรรมเมนู (MenuMatrixCard.jsx) ---------- */
+.matrix { display: block; overflow: visible; }
+.matrix-grid { stroke: var(--color-line); }
+.matrix-mid { stroke: var(--color-ink-muted); stroke-dasharray: 4 4; }
+.matrix-tick { font-size: 11px; fill: var(--color-ink-muted); font-variant-numeric: tabular-nums; }
+.matrix-axis { font-size: 11px; fill: var(--color-ink-subtle); }
+.matrix-quad { font-size: 12px; font-weight: 600; fill: var(--color-ink-subtle); }
+.matrix-label { font-size: 11.5px; font-weight: 500; fill: var(--color-ink); paint-order: stroke; stroke: var(--color-surface); stroke-width: 3px; pointer-events: none; }
+.matrix-point circle { cursor: pointer; transition: cx 800ms var(--ease-out), cy 800ms var(--ease-out), r 800ms var(--ease-out), stroke-width 200ms ease; }
+.matrix-point .is-drink { fill: color-mix(in oklab, var(--color-chart) 72%, transparent); stroke: var(--color-surface); stroke-width: 1; }
+.matrix-point .is-food { fill: color-mix(in oklab, var(--color-surface) 70%, transparent); stroke: var(--color-ink-subtle); stroke-width: 2; }
+.matrix-point .is-on { stroke: var(--color-ink); stroke-width: 2.5; }
+.matrix .matrix-point { opacity: 0; }
+.matrix.is-in .matrix-point { animation: pop 600ms var(--ease-out) calc(var(--k) * 25ms) both; transform-box: fill-box; transform-origin: center; }
+@keyframes pop-in { from { opacity: 0; transform: scale(0.2); } to { opacity: 1; transform: none; } }
+.matrix.is-in .matrix-point { animation-name: pop-in; }
+.matrix-tip {
+  position: absolute;
+  z-index: 5;
+  width: 216px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--color-surface);
+  box-shadow: 0 8px 24px -8px rgb(0 0 0 / 0.35), 0 0 0 1px var(--color-line);
+  font-size: 13px;
+  pointer-events: none;
+  animation: fade-in 160ms ease-out;
+}
+
+/* นาฬิกากาแฟ: แท่งที่โฟกัสด้วยคีย์บอร์ด */
+.clock-hour { outline: none; cursor: pointer; }
+.clock-hour:focus-visible line:last-child { stroke: var(--color-ink); }
+
+/* กราฟแนวโน้ม: เส้นและพื้นใต้เส้นเผยจากซ้ายไปขวา (แกนและเส้นตารางขึ้นทันที) */
+.trend-draw .recharts-area,
+.trend-draw .recharts-line {
+  animation: trend-draw 1400ms var(--ease-out) both;
+}
+@keyframes trend-draw {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+/* แท่งสาขา: เทจากซ้ายไปขวา มีฟองครีม่าที่ปลาย และแสงวิ่งผ่านช้า ๆ */
+.pour-bar {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-bar-muted);
+  transition: width 1200ms var(--ease-out), background-color 300ms ease;
+}
+.pour-bar.is-on { background: linear-gradient(90deg, var(--lg-dark), var(--lg-mid) 55%, var(--lg-light)); }
+.pour-bar.is-on::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgb(255 240 220 / 0.35), transparent);
+  transform: translateX(-100%);
+  animation: bar-shine 4.5s var(--ease-in-out) 1.4s infinite;
+}
+.pour-bar.is-on::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-gold-hi);
+  box-shadow: 0 0 8px var(--color-gold-hi);
+  transform: translateY(-50%);
+}
+@keyframes bar-shine {
+  0% { transform: translateX(-100%); }
+  40%, 100% { transform: translateX(100%); }
+}
+
+/* แก้วเล็กของเมนูขายดี */
+.fill-cup-level { transition: transform 1300ms var(--ease-out); }
+.fill-cup-wave { animation: wave-sm 1.8s linear infinite; }
+
+/* ---------- ภาพคั่นส่วน (SectionBand.jsx) ---------- */
+/* แต่ละบรรทัดของหัวข้อโผล่จากใต้เส้น: กล่องตัดล้น แต่เผื่อที่ด้านบนให้สระ/วรรณยุกต์ไทยไม่ถูกตัด */
+.reveal-line {
+  display: block;
+  overflow: hidden;
+  padding-top: 0.2em;
+  margin-top: -0.2em;
+  padding-bottom: 0.06em;
+}
+.reveal-line > span { display: inline-block; transform: translateY(115%); }
+.is-in .reveal-line > span { animation: line-up 1150ms var(--ease-out) forwards; }
+.band {
+  position: relative;
+  height: clamp(280px, 34vw, 420px);
+  overflow: hidden;
+  border-radius: 24px;
+  isolation: isolate;
+  background: #1b130d;
+}
+.band-tall { height: clamp(340px, 44vw, 560px); }
+/* ภาพจิ๋วเบลอแสดงก่อน ภาพจริงจางขึ้นมาทับเมื่อโหลดเสร็จ */
+.band-media img.band-lqip { filter: blur(18px) saturate(1.1); }
+.band-media img.band-full { opacity: 0; transition: opacity 700ms var(--ease-out); }
+.band-media img.band-full.is-loaded { opacity: 1; }
+.band-media img {
+  position: absolute;
+  left: 0;
+  top: -12%;
+  width: 100%;
+  height: 124%;
+  object-fit: cover;
+  transform: translateY(calc((var(--p, 0.5) - 0.5) * -18%)) scale(1.02);
+  will-change: transform;
+}
+.band-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgb(17 11 7 / 0.78), rgb(17 11 7 / 0.3) 55%, transparent 85%),
+    linear-gradient(0deg, rgb(17 11 7 / 0.55), transparent 55%);
+}
+.band-copy {
+  position: absolute;
+  left: clamp(20px, 4vw, 48px);
+  right: clamp(20px, 4vw, 48px);
+  bottom: clamp(22px, 4vw, 44px);
+  max-width: 680px;
+  color: #f6ecdf;
+}
+.band-eyebrow {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: #ebcfa8;
+  opacity: 0;
+}
+.band-copy.is-in .band-eyebrow { animation: fade-up 800ms var(--ease-out) forwards; }
+.band-title {
+  margin-top: 10px;
+  font-size: clamp(36px, 6vw, 80px);
+  font-weight: 600;
+  line-height: 1.08;
+  color: #f8efe2;
+}
+.band-text {
+  margin-top: 14px;
+  max-width: 48ch;
+  font-size: 15px;
+  color: rgb(246 236 223 / 0.82);
+  opacity: 0;
+}
+.band-copy.is-in .band-text { animation: fade-up 900ms var(--ease-out) 350ms forwards; }
 
 @media (prefers-reduced-motion: reduce) {
   *,

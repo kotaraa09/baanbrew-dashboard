@@ -480,7 +480,7 @@ export function Segmented({ label, value, onChange, options }) {
 
 export function Change({ value, variant = "text" }) {
   if (value == null) {
-    return <span className="text-xs text-ink-muted">ไม่มีข้อมูลเทียบ</span>;
+    return <span className="text-xs text-ink-muted">ไม่มีให้เทียบ</span>;
   }
   const flat = Math.abs(value) < 0.05;
   const up = value > 0;
@@ -495,7 +495,7 @@ export function Change({ value, variant = "text" }) {
       }`}
     >
       {!flat && <Arrow className="size-3.5" />}
-      <span className="sr-only">{flat ? "คงที่" : up ? "เพิ่มขึ้น" : "ลดลง"}</span>
+      <span className="sr-only">{flat ? "เท่าเดิม" : up ? "เพิ่มขึ้น" : "ลดลง"}</span>
       {formatPercent(value)}
     </span>
   );

@@ -237,6 +237,75 @@ export function topProducts(rows, products, limit = 5) {
     .slice(0, limit);
 }
 
+// ปฏิทินคั่ว: ยอดขายทุกวันในช่วง (วันที่ไม่มียอดเป็น 0) พร้อมวันในสัปดาห์ (0 = จันทร์ … 6 = อาทิตย์)
+export function dailyCalendar(rows, start, end) {
+  const map = new Map();
+  for (const r of rows) if (r.date >= start && r.date <= end) map.set(r.date, (map.get(r.date) ?? 0) + r.revenue);
+  const days = [];
+  for (let d = start; d <= end; d = addDays(d, 1)) {
+    const [y, m, dd] = d.split("-").map(Number);
+    const weekday = (new Date(Date.UTC(y, m - 1, dd)).getUTCDay() + 6) % 7;
+    days.push({ date: d, revenue: map.get(d) ?? 0, weekday });
+  }
+  return days;
+}
+
+// หมวดที่เสิร์ฟเป็นแก้ว (ไม่นับเบเกอรี่/อาหาร/อื่น ๆ) ใช้นับ "แก้ว" บนการ์ดถ้วยและนาฬิกากาแฟ
+export const DRINK_CATEGORIES = new Set(["กาแฟ", "ชา", "นอนคอฟฟี่", "ปั่น", "โซดา"]);
+export const drinkIds = (products) =>
+  new Set(products.filter((p) => DRINK_CATEGORIES.has(p.category)).map((p) => p.product_id));
+
+// จำนวนแก้ว = ผลรวม qty ของเมนูเครื่องดื่ม
+export function cupsServed(rows, drinks) {
+  let cups = 0;
+  for (const r of rows) if (drinks.has(r.product_id)) cups += r.qty;
+  return cups;
+}
+
+// นาฬิกากาแฟ: ยอดขายและจำนวนแก้วตามชั่วโมงของวัน (เวลาไทย อ่านจากตัวอักษรที่ 11–12 ของ datetime)
+// คืนครบ 24 ชั่วโมงเสมอ ชั่วโมงที่ไม่มียอดเป็น 0
+export function salesByHour(rows, drinks) {
+  const hours = Array.from({ length: 24 }, (_, hour) => ({ hour, revenue: 0, cups: 0 }));
+  for (const r of rows) {
+    const h = Number(r.datetime.slice(11, 13));
+    if (!(h >= 0 && h < 24)) continue;
+    hours[h].revenue += r.revenue;
+    if (drinks.has(r.product_id)) hours[h].cups += r.qty;
+  }
+  return hours;
+}
+
+// วิศวกรรมเมนู (menu engineering): ทุกเมนูวางบนแกน "ขายได้กี่ชิ้น" × "กำไรขั้นต้นต่อชิ้น"
+// กำไรขั้นต้น = qty × (unit_price − cost) โดย cost มาจาก products.csv (ไม่ใช่กำไรสุทธิ ไม่รวมค่าเช่า ค่าแรง ฯลฯ)
+// เส้นแบ่งสี่ช่อง = ค่ามัธยฐานของทั้งสองแกน (ครึ่งหนึ่งของเมนูอยู่แต่ละฝั่ง)
+export function menuEngineering(rows, products) {
+  const info = new Map(products.map((p) => [p.product_id, p]));
+  const agg = new Map();
+  for (const r of rows) {
+    const p = info.get(r.product_id);
+    if (!p) continue;
+    const a = agg.get(r.product_id) ?? { product_id: r.product_id, name: p.product_name, category: p.category, qty: 0, revenue: 0, margin: 0 };
+    a.qty += r.qty;
+    a.revenue += r.revenue;
+    a.margin += r.qty * (r.unit_price - Number(p.cost));
+    agg.set(r.product_id, a);
+  }
+  const items = [...agg.values()].map((a) => ({ ...a, marginPerUnit: a.qty ? a.margin / a.qty : 0, marginPct: a.revenue ? a.margin / a.revenue : 0 }));
+  const median = (xs) => {
+    const v = [...xs].sort((x, y) => x - y);
+    const m = Math.floor(v.length / 2);
+    return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+  };
+  const qtyMid = items.length ? median(items.map((i) => i.qty)) : 0;
+  const marginMid = items.length ? median(items.map((i) => i.marginPerUnit)) : 0;
+  for (const i of items) {
+    const popular = i.qty >= qtyMid;
+    const rich = i.marginPerUnit >= marginMid;
+    i.quadrant = popular && rich ? "star" : popular ? "workhorse" : rich ? "puzzle" : "dog";
+  }
+  return { items, qtyMid, marginMid };
+}
+
 // ---------- ที่มาของตัวเลข (Trace) ----------
 
 // กรองแถวทีละขั้นเหมือนตอนทำ Pivot Table พร้อมจำนวนแถวที่เหลือในแต่ละขั้น
@@ -388,6 +457,6 @@ export const formatRange = (start, end) => `${formatDate(start)} – ${formatDat
 // ป้ายของกลุ่มเวลาแต่ละแบบ ใช้บนแกน X และ tooltip
 export function formatBucket(key, granularity, short = false) {
   if (granularity === "month") return formatMonth(key);
-  if (granularity === "week") return short ? formatDate(key, false) : `7 วันเริ่ม ${formatDate(key)}`;
+  if (granularity === "week") return short ? formatDate(key, false) : `7 วันนับจาก ${formatDate(key)}`;
   return formatDate(key, !short);
 }

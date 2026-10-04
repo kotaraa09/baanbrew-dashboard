@@ -23,20 +23,20 @@ export function stepQty(value, delta) {
  */
 export function validateSaleForm(form, products) {
   const errors = {};
-  if (!BRANCHES.includes(form.branch)) errors.branch = "เลือกสาขา";
-  if (!products.some((p) => p.product_id === form.product_id)) errors.product_id = "เลือกเมนู";
+  if (!BRANCHES.includes(form.branch)) errors.branch = "ยังไม่ได้เลือกสาขา";
+  if (!products.some((p) => p.product_id === form.product_id)) errors.product_id = "ยังไม่ได้เลือกเมนู";
 
   // ตรวจจากข้อความก่อนแปลงเป็นตัวเลข: Number("1.5") ผ่าน > 0 ได้ และ Number("") = 0
   const qty = String(form.qty ?? "").trim();
   if (!/^\d+$/.test(qty) || Number(qty) < 1 || Number(qty) > MAX_QTY) {
-    errors.qty = `จำนวนต้องเป็นจำนวนเต็ม 1–${MAX_QTY}`;
+    errors.qty = `จำนวนต้องเป็นเลขเต็ม 1–${MAX_QTY}`;
   }
 
-  if (!PAYMENTS.includes(form.payment_method)) errors.payment_method = "เลือกวิธีชำระเงิน";
+  if (!PAYMENTS.includes(form.payment_method)) errors.payment_method = "ยังไม่ได้เลือกวิธีจ่ายเงิน";
 
   const customer = normalizeCustomerId(form.customer_id);
   if (customer !== null && !/^C\d{5}$/.test(customer)) {
-    errors.customer_id = "รหัสสมาชิกต้องเป็น C ตามด้วยเลข 5 หลัก เช่น C01234 (ว่างได้)";
+    errors.customer_id = "รหัสสมาชิกต้องเป็น C ตามด้วยเลข 5 หลัก เช่น C01234 (ไม่ใส่ก็ได้)";
   }
   return errors;
 }

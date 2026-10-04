@@ -6,6 +6,8 @@ import CustomersStory from "./CustomersStory.jsx";
 import { formatBaht, formatBahtExact, formatDate, formatMonth, formatNumber } from "../lib/metrics.js";
 
 const pct = (n) => `${(n * 100).toFixed(1)}%`;
+// ช่องว่างแบบไม่ตัดบรรทัด: ตัวเลขกับหน่วยอยู่บรรทัดเดียวกันเสมอ
+const NB = "\u00a0";
 const tick = { fontSize: 12, fill: "var(--color-ink-subtle)" };
 
 function Kpi({ label, value, note }) {
@@ -47,7 +49,7 @@ function NewMembersTip({ active, payload }) {
       <p className="font-semibold text-ink">{formatMonth(`${d.month}-01`)}</p>
       <p className="text-ink-subtle">
         สมาชิกใหม่ <span className="font-medium text-ink tabular-nums">{formatNumber(d.count)} คน</span>
-        {d.partial && ` (ข้อมูล ${d.days}/${d.fullDays} วัน)`}
+        {d.partial && ` (มีข้อมูลแค่ ${d.days}/${d.fullDays}${NB}วัน)`}
       </p>
     </div>
   );
@@ -62,8 +64,8 @@ function NewMembersCard({ data }) {
     <Card>
       <CardHeader
         title="สมาชิกใหม่รายเดือน"
-        subtitle={`เฉลี่ย ${formatNumber(avg)} คน/เดือน ใน ${recent.length} เดือนล่าสุดที่ข้อมูลครบ${
-          last?.partial ? ` · ${formatMonth(`${last.month}-01`)} มีข้อมูลแค่ ${last.days}/${last.fullDays} วัน (สีจาง)` : ""
+        subtitle={`เฉลี่ยเดือนละ ${formatNumber(avg)}${NB}คน ดูจาก ${recent.length}${NB}เดือนล่าสุดที่ข้อมูลครบ${
+          last?.partial ? ` · ${formatMonth(`${last.month}-01`)} มีข้อมูลแค่ ${last.days}/${last.fullDays}${NB}วัน เลยเป็นสีจาง` : ""
         }`}
       />
       <div className="h-64 px-2 pt-3 pb-2 sm:px-3">
@@ -87,18 +89,18 @@ function NewMembersCard({ data }) {
 function ComparisonCard({ comparison }) {
   const { member, walkin, medianBills } = comparison;
   const rows = [
-    ["สัดส่วนยอดขาย", pct(member.revenueShare), pct(walkin.revenueShare)],
-    ["สัดส่วนจำนวนบิล", pct(member.billShare), pct(walkin.billShare)],
-    ["ยอดเฉลี่ยต่อบิล", formatBahtExact(member.avgBill), formatBahtExact(walkin.avgBill)],
+    ["ส่วนแบ่งยอดขาย", pct(member.revenueShare), pct(walkin.revenueShare)],
+    ["ส่วนแบ่งบิล", pct(member.billShare), pct(walkin.billShare)],
+    ["จ่ายเฉลี่ยต่อบิล", formatBahtExact(member.avgBill), formatBahtExact(walkin.avgBill)],
   ];
   const diff = (member.avgBill - walkin.avgBill) / walkin.avgBill;
   const verdict =
     Math.abs(diff) < 0.05
-      ? `ยอดต่อบิลใกล้กัน (ต่างกัน ${pct(Math.abs(diff))}) สมาชิกไม่ได้ซื้อต่อบิลมากกว่า แต่กลับมาซื้อบ่อย ค่ากลาง ${medianBills} บิลต่อคน`
-      : `สมาชิกซื้อต่อบิล${diff > 0 ? "มากกว่า" : "น้อยกว่า"}ลูกค้าทั่วไป ${pct(Math.abs(diff))} และกลับมาซื้อ ค่ากลาง ${medianBills} บิลต่อคน`;
+      ? `ต่อบิลจ่ายพอ ๆ กัน (ต่างกันแค่ ${pct(Math.abs(diff))}) สมาชิกไม่ได้จ่ายต่อบิลเยอะกว่า แต่กลับมาซื้อบ่อย ค่ากลางอยู่ที่คนละ ${medianBills}${NB}บิล`
+      : `สมาชิกจ่ายต่อบิล${diff > 0 ? "มากกว่า" : "น้อยกว่า"}ลูกค้าทั่วไป ${pct(Math.abs(diff))} และกลับมาซื้อซ้ำ ค่ากลางอยู่ที่คนละ ${medianBills}${NB}บิล`;
   return (
     <Card className="flex flex-col">
-      <CardHeader title="สมาชิก เทียบ ลูกค้าทั่วไป" subtitle="ลูกค้าทั่วไป = บิลที่ไม่มี customer_id" />
+      <CardHeader title="สมาชิก เทียบกับลูกค้าทั่วไป" subtitle="ลูกค้าทั่วไป คือบิลที่ไม่มี customer_id" />
       <div className="px-4 pt-3 pb-4 sm:px-5">
         <table className="w-full text-[13px]">
           <thead>
@@ -129,19 +131,20 @@ function RecencyCard({ recency, never, lapsed, total, lastDate }) {
   return (
     <Card className="flex flex-col">
       <CardHeader
-        title="ซื้อครั้งล่าสุดเมื่อไร"
-        subtitle={`นับถึง ${formatDate(lastDate)} · สีเทา = สมาชิกที่ควรดึงกลับ`}
+        title="มาซื้อครั้งล่าสุดเมื่อไหร่"
+        subtitle={`นับถึง ${formatDate(lastDate)} · แท่งสีเทาคือคนที่ควรชวนกลับมา`}
       />
       <div className="px-4 pt-2 pb-4 sm:px-5">
         <ul>
           {recency.map((r) => (
-            <BarRow key={r.key} label={r.label} value={`${formatNumber(r.count)} คน`} detail={pct(r.count / total)}
+            <BarRow key={r.key} label={r.label} value={`${formatNumber(r.count)}${NB}คน`} detail={pct(r.count / total)}
               ratio={max ? r.count / max : 0} muted={r.lapsed} />
           ))}
         </ul>
         <p className="mt-2 rounded-lg bg-canvas px-3 py-2 text-[13px] text-ink">
-          {formatNumber(lapsed)} คนไม่ได้ซื้อเกิน {ACTIVE_DAYS} วัน และ {formatNumber(never)} คนสมัครแล้วไม่เคยซื้อ
-          รวม {pct((lapsed + never) / total)} ของสมาชิก เป็นกลุ่มที่ส่งโปรฯ ดึงกลับได้
+          <span className="whitespace-nowrap">{formatNumber(lapsed)} คน</span>ไม่ได้มาซื้อเกิน <span className="whitespace-nowrap">{ACTIVE_DAYS} วัน</span> อีก{" "}
+          <span className="whitespace-nowrap">{formatNumber(never)} คน</span>สมัครแล้วไม่เคยซื้อเลย
+          รวมเป็น {pct((lapsed + never) / total)} ของสมาชิก กลุ่มนี้ส่งโปรฯ ชวนกลับมาได้
         </p>
       </div>
     </Card>
@@ -162,14 +165,14 @@ function SegmentsCard({ segments }) {
   return (
     <Card>
       <CardHeader
-        title="กลุ่มสมาชิก"
-        subtitle={`จำนวนสมาชิก และยอดซื้อเฉลี่ยต่อคนตลอดช่วงข้อมูล · ซื้อต่อคนสูงสุด: ${top.key} (${formatBaht(top.perMember)})`}
+        title="สมาชิกแต่ละกลุ่ม"
+        subtitle={`มีกี่คน และแต่ละคนใช้จ่ายเฉลี่ยเท่าไหร่ตลอดช่วงข้อมูล · ใช้จ่ายต่อคนเยอะสุด: ${top.key} (${formatBaht(top.perMember)})`}
       >
-        <Segmented label="แบ่งกลุ่มตาม" value={by} onChange={setBy} options={SEGMENTS} />
+        <Segmented label="แบ่งตาม" value={by} onChange={setBy} options={SEGMENTS} />
       </CardHeader>
       <ul key={by} className="grid animate-fade-in gap-x-8 px-4 pt-2 pb-4 sm:px-5 md:grid-cols-2">
         {list.map((g) => (
-          <BarRow key={g.key} label={g.key} value={`${formatNumber(g.members)} คน`}
+          <BarRow key={g.key} label={g.key} value={`${formatNumber(g.members)}${NB}คน`}
             detail={`${pct(g.share)} · ${formatBaht(g.perMember)}/คน`} ratio={g.members / maxMembers} />
         ))}
       </ul>
@@ -213,7 +216,7 @@ export default function CustomersView({ data }) {
   return (
     <>
       <div className="flex items-center gap-2">
-        <Segmented label="รูปแบบการแสดงผล" value={mode} onChange={setMode} options={MODES} />
+        <Segmented label="ดูแบบไหน" value={mode} onChange={setMode} options={MODES} />
       </div>
       {mode === "story" && data.customers.length > 0 ? (
         <CustomersStory view={view} data={data} />
@@ -228,9 +231,9 @@ function DetailView({ data, view }) {
   if (data.customers.length === 0) {
     return (
       <Card className="px-5 py-8 text-center">
-        <p className="text-sm font-semibold text-ink">ไม่มีข้อมูลสมาชิก</p>
+        <p className="text-sm font-semibold text-ink">ยังไม่มีข้อมูลสมาชิก</p>
         <p className="mx-auto mt-1 max-w-md text-[13px] text-ink-subtle">
-          ตรวจว่ามีไฟล์ <code>public/customers.csv</code> แล้วรีเฟรชหน้านี้
+          ลองเช็กว่ามีไฟล์ <code>public/customers.csv</code> อยู่ไหม แล้วรีเฟรชหน้าใหม่
         </p>
       </Card>
     );
@@ -242,9 +245,9 @@ function DetailView({ data, view }) {
       <Card className="animate-rise p-2">
         <div className="grid grid-cols-2 gap-1 lg:grid-cols-4">
           <Kpi label="สมาชิกทั้งหมด" value={formatNumber(kpis.members)} note="จาก customers.csv" />
-          <Kpi label={`ซื้อภายใน ${ACTIVE_DAYS} วัน`} value={formatNumber(kpis.active)} note={`${pct(kpis.active / kpis.members)} ของสมาชิก`} />
+          <Kpi label={`ซื้อใน ${ACTIVE_DAYS}${NB}วันล่าสุด`} value={formatNumber(kpis.active)} note={`${pct(kpis.active / kpis.members)} ของสมาชิก`} />
           <Kpi label="ยอดขายจากสมาชิก" value={pct(kpis.memberShare)} note="ของยอดขายทั้งหมด" />
-          <Kpi label="กลับมาซื้อซ้ำ" value={pct(kpis.repeatRate)} note="ของสมาชิกที่เคยซื้อ (2 บิลขึ้นไป)" />
+          <Kpi label="กลับมาซื้อซ้ำ" value={pct(kpis.repeatRate)} note={`ของสมาชิกที่เคยซื้อ (ซื้อ 2${NB}บิลขึ้นไป)`} />
         </div>
       </Card>
 
@@ -262,7 +265,7 @@ function DetailView({ data, view }) {
       </div>
 
       <p className="text-xs text-ink-muted">
-        แสดงเฉพาะตัวเลขรวมของแต่ละกลุ่ม ไม่แสดงข้อมูลรายคน · public/customers.csv ตัดชื่อเล่นและเบอร์โทรออกแล้ว (PDPA)
+        ตรงนี้มีแค่ตัวเลขรวมของแต่ละกลุ่ม ไม่มีข้อมูลรายคน · ใน public/customers.csv ตัดชื่อเล่นกับเบอร์โทรออกแล้ว (PDPA)
       </p>
     </>
   );

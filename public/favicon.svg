@@ -2,8 +2,8 @@
   <!-- ตราบ้านบรู (สีตายตัว เส้นหนากว่าเพื่อให้เห็นที่ 16px) ต้นฉบับอยู่ที่ src/components/Logo.jsx -->
   <defs>
     <linearGradient id="f" x1="8" y1="6" x2="40" y2="46" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#f6e3ad"/><stop offset=".3" stop-color="#d9b76e"/>
-      <stop offset=".55" stop-color="#8f6b2c"/><stop offset=".8" stop-color="#d9b76e"/><stop offset="1" stop-color="#f6e3ad"/>
+      <stop offset="0" stop-color="#f6d4a6"/><stop offset=".3" stop-color="#e0a76a"/>
+      <stop offset=".55" stop-color="#8a5428"/><stop offset=".8" stop-color="#e0a76a"/><stop offset="1" stop-color="#f6d4a6"/>
     </linearGradient>
     <mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
       <g transform="translate(3 .8) scale(.875)">
@@ -13,6 +13,6 @@
       </g>
     </mask>
   </defs>
-  <rect width="48" height="48" rx="11" fill="#0a0a0a"/>
+  <rect width="48" height="48" rx="11" fill="#1b130d"/>
   <rect width="48" height="48" fill="url(#f)" mask="url(#m)"/>
 </svg>

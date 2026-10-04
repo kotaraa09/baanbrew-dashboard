@@ -126,7 +126,7 @@ export default function SaleForm({ products, uid = "anonymous" }) {
     try {
       // created_at ให้เซิร์ฟเวอร์ใส่เวลาเอง (Security Rules ใน Lab 3.3 จะบังคับว่าต้องเป็น request.time)
       await setDoc(doc(db, "sales", sale.id), { ...sale.data, created_at: serverTimestamp() });
-      setStatus({ kind: "success", text: `บันทึกบิล ${sale.data.order_id} · ${formatBaht(sale.data.revenue)} แล้ว` });
+      setStatus({ kind: "success", text: `บันทึกบิล ${sale.data.order_id} แล้ว · ${formatBaht(sale.data.revenue)}` });
       // เก็บสาขาและวิธีชำระเงินไว้ (แคชเชียร์มักบันทึกสาขาเดิมต่อกัน) ล้างส่วนที่เปลี่ยนทุกบิล
       setForm((f) => ({ ...EMPTY, branch: f.branch, payment_method: f.payment_method }));
       setSubmitted(false);
@@ -134,7 +134,7 @@ export default function SaleForm({ products, uid = "anonymous" }) {
       console.error("บันทึกไม่สำเร็จ", err, sale.data);
       setStatus({
         kind: "error",
-        text: err.code === "permission-denied" ? "ถูกปฏิเสธโดย Security Rules" : `บันทึกไม่สำเร็จ: ${err.message}`,
+        text: err.code === "permission-denied" ? "Security Rules ไม่ให้บันทึก" : `บันทึกไม่ได้: ${err.message}`,
       });
     }
   };
@@ -144,7 +144,7 @@ export default function SaleForm({ products, uid = "anonymous" }) {
 
   return (
     <Card>
-      <CardHeader title="บันทึกยอดขาย" subtitle="1 ครั้ง = 1 เมนูในบิล · ราคาดึงจากเมนูอัตโนมัติ" />
+      <CardHeader title="บันทึกยอดขาย" subtitle="บันทึกทีละเมนูในบิล · ราคาดึงจากเมนูให้เอง" />
       <form onSubmit={onSubmit} noValidate className="space-y-3 px-4 pt-3 pb-4 sm:px-5">
         <Field id={ids.branch} label="สาขา" error={shownErrors.branch}>
           <Select
@@ -182,11 +182,11 @@ export default function SaleForm({ products, uid = "anonymous" }) {
               describedBy={describedBy("qty", ids.qty)}
             />
           </Field>
-          <Field id={ids.payment} label="ชำระเงิน" error={shownErrors.payment_method}>
+          <Field id={ids.payment} label="จ่ายด้วย" error={shownErrors.payment_method}>
             <Select
               id={ids.payment}
               block
-              label="ชำระเงิน"
+              label="จ่ายด้วย"
               value={form.payment_method}
               onChange={set("payment_method")}
               invalid={!!shownErrors.payment_method}

@@ -5,27 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>บ้านบรู Dashboard</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="theme-color" content="#110b07" />
     <script>
-      // ตั้งธีมก่อน render กันหน้าจอกะพริบขาว: ค่าที่ผู้ใช้เลือกไว้ ไม่งั้นใช้โหมดมืด (ธีมหลักของแบรนด์: ดำ + ทอง)
+      // ตั้งธีมก่อน render กันหน้าจอกะพริบ: ค่าที่ผู้ใช้เลือกไว้ ไม่งั้นตามเวลากรุงเทพฯ ตอนนี้
+      // (06:00–17:59 = เช้าที่บ้านบรู / ธีมสว่าง, นอกนั้น = ค่ำในโรงคั่ว / ธีมมืด)
       (function () {
         var t = null;
         try { t = localStorage.getItem("baanbrew-theme"); } catch (e) {}
-        if (t !== "dark" && t !== "light") t = "dark";
+        if (t !== "dark" && t !== "light") {
+          var h = (new Date().getUTCHours() + 7) % 24;
+          t = h >= 6 && h < 18 ? "light" : "dark";
+        }
         document.documentElement.dataset.theme = t;
       })();
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Trirong:wght@500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,300;9..144,400&family=Trirong:wght@500;600;700&display=swap"
       rel="stylesheet"
     />
   </head>
   <body>
     <!--
       THESIS: ภาพรวมยอดขายของเจ้าของเครือร้านแบบ analytics มาตรฐาน (Shopify Analytics) ตอบ "เครือร้านเป็นยังไง ดูตรงไหนต่อ" ใน 5 วินาที ไม่ใช่การ์ดตัวเลขลอย ๆ ที่ไม่มีบริบท
-      OWN-WORLD: "Black & Gold Marble" · หัวหน้าเป็นภาพหินอ่อนดำ-ทอง-ขาวในกรอบทอง (public/marble-art.svg) · ทองเป็นโลหะไล่แสงเสมอ ไม่ใช่ทองแบน · มืด: ดำด้าน #0a0a0a การ์ด #141414 ขอบทองบางด้านบน · สว่าง: ขาวแบบหินอ่อน · Trirong เฉพาะชื่อแบรนด์ · เขียว/แดงเฉพาะ % เปลี่ยนแปลง
+      OWN-WORLD: "Roast & Linen" · สองธีมคือสองช่วงเวลาของร้าน: สว่าง = เช้าที่บาร์ดริป (ลินิน ผนังปูน แดดเช้า), มืด = ค่ำในโรงคั่ว (เอสเปรสโซ ไม้สัก ไฟอำพัน) · hero เป็นวิดีโอวนของแต่ละช่วงเวลา (สร้างด้วย AI, scripts/media) · สีหลักคือครีม่า ไม่ใช่ทองโลหะ · Trirong หัวเรื่อง, Fraunces ตัวเลขใหญ่ · เขียว/แดงเฉพาะ % เปลี่ยนแปลง
       STORY: เลือกช่วงเวลาและสาขา → เห็น KPI 4 ตัวพร้อม % เทียบช่วงก่อนหน้า → กด KPI เพื่อเปลี่ยนกราฟหลัก → ดูสาขาและเมนูที่เป็นตัวขับ
       FIRST VIEWPORT: หัวข้อ + ตัวเลือกช่วงเวลา/สาขาด้านบน, การ์ดเดียวที่มีแถบ KPI 4 ช่องเป็นแท็บเหนือกราฟเส้นช่วงนี้ (ทึบ) เทียบช่วงก่อน (เส้นประ)
       FORM: canon (มาตรฐานของหมวด, ผู้ใช้เลือก Shopify Analytics เป็นเกณฑ์), ไม่ได้สุ่ม seed
