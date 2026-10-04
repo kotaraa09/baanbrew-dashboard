@@ -752,6 +752,283 @@ html { transition: background-color 0.5s ease; }
   .story-card { max-width: none; width: 100%; font-size: 15px; }
 }
 
+/* ---------- แผนที่ 3 มิติใน Replay (ReplayCard.jsx) ---------- */
+:root { --map-floor: #f4ecdf; --map-edge: #e2d4bf; --map-dot: #ddcdb6; --map-water: #b9cfd4; --map-water-ink: #4d6a72; }
+:root[data-theme="dark"] { --map-floor: #2a1e15; --map-edge: #4a3726; --map-dot: #3d2d20; --map-water: #35505a; --map-water-ink: #9ec0c8; }
+.r3d { position: relative; aspect-ratio: 400 / 300; perspective: 1100px; perspective-origin: 50% 10%; overflow: hidden; }
+.r3d.is-moving .r3d-floor { transition: transform var(--camera-ms) cubic-bezier(0.65, 0, 0.35, 1); }
+/* มองจากด้านบน: ไม่เห็นความสูง จึงให้ขนาดฐานแทนยอดขาย (เหมือนวงกลมในแผนที่แบนเดิม) */
+.r3d .r3d-col { transition: scale var(--camera-ms) cubic-bezier(0.65, 0, 0.35, 1); }
+.r3d.view-top .r3d-col { scale: var(--s, 1); }
+.r3d.view-top .r3d-face:not(.is-top) { display: none; }
+.r3d.view-top .r3d-face.is-top { transform: none; border-radius: 3px; box-shadow: 0 0 0 1px color-mix(in oklab, var(--color-chart) 60%, #000); }
+.r3d-floor {
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  top: 10%;
+  aspect-ratio: 400 / 340;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--rx)) rotateZ(var(--rz));
+}
+.r3d-world { position: absolute; inset: -60%; transform-style: preserve-3d; }
+.r3d-map { display: block; width: 100%; height: 100%; }
+/* พื้นใหญ่กว่ากรอบ แล้วจางเข้าหาสีการ์ดทั้งสี่ด้าน จะได้ไม่เห็นทั้งขอบแผ่นและขอบกรอบ
+   (mask อยู่ที่กรอบ ซึ่งเป็นแค่ตัวกำหนด perspective ไม่ได้ preserve-3d แท่งจึงยังเป็น 3 มิติ) */
+.r3d {
+  --fade: 14%;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent),
+    linear-gradient(to bottom, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent),
+    linear-gradient(to bottom, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent);
+  mask-composite: intersect;
+}
+.r3d-col { position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; transform-style: preserve-3d; }
+.r3d-face { position: absolute; display: block; }
+.r3d-face.is-top { inset: 0; transform: translateZ(var(--h)); background: color-mix(in oklab, var(--color-chart) 62%, #fff4e0); }
+.r3d-face.is-s, .r3d-face.is-n { left: 0; width: 100%; height: var(--h); transform-origin: top; transform: rotateX(90deg); }
+.r3d-face.is-s { top: 100%; background: linear-gradient(to bottom, color-mix(in oklab, var(--color-chart) 70%, #000), var(--color-chart)); }
+.r3d-face.is-n { top: 0; background: color-mix(in oklab, var(--color-chart) 55%, #000); }
+.r3d-face.is-w, .r3d-face.is-e { top: 0; width: var(--h); height: 100%; transform-origin: left; transform: rotateY(-90deg); }
+.r3d-face.is-w { left: 0; background: linear-gradient(to left, color-mix(in oklab, var(--color-chart) 85%, #fff), color-mix(in oklab, var(--color-chart) 60%, #000)); }
+.r3d-face.is-e { left: 100%; background: linear-gradient(to left, color-mix(in oklab, var(--color-chart) 60%, #000), color-mix(in oklab, var(--color-chart) 40%, #000)); }
+.r3d-tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3px 8px 4px;
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-surface) 88%, transparent);
+  box-shadow: 0 4px 14px -6px rgb(0 0 0 / 0.35);
+  white-space: nowrap;
+  line-height: 1.25;
+}
+.r3d-tag b { font-size: 12.5px; font-weight: 600; color: var(--color-ink); }
+.r3d-tag span { font-size: 11px; color: var(--color-ink-muted); font-variant-numeric: tabular-nums; }
+.r3d-face.is-top.is-flat { background: transparent; }
+@media (max-width: 639px) {
+  .r3d { aspect-ratio: 400 / 320; }
+  .r3d-tag { padding: 2px 6px 3px; border-radius: 6px; }
+  .r3d-tag b { font-size: 11px; }
+  .r3d-tag span { font-size: 10px; }
+}
+.r3d-tag { pointer-events: none; will-change: transform; }
+.r3d-tag.is-closed b { color: var(--color-ink-muted); }
+.r3d-leads { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.r3d-leads line { stroke: var(--color-ink-muted); stroke-width: 1; stroke-dasharray: 2 2; transition: opacity 200ms; }
+.r3d-tag .r3d-new { margin-bottom: 2px; padding: 0 6px; border-radius: 999px; background: var(--color-chart); color: var(--color-on-chart); font-weight: 600; }
+
+/* การ์ดเชิญเปิด Replay: พื้นภาพบาร์ยามค่ำ ปุ่มเล่นใหญ่ และแท่ง 3 มิติตัวอย่างที่หมุนช้า ๆ */
+.replay-cta {
+  position: relative;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 18px;
+  overflow: hidden;
+  padding: 18px 22px;
+  border-radius: var(--radius-card);
+  background: #110b07;
+  text-align: left;
+  box-shadow: var(--shadow-card);
+  isolation: isolate;
+  transition: scale 200ms var(--ease-out), box-shadow 300ms;
+}
+.replay-cta:hover { box-shadow: 0 0 0 1px #d2a95866, var(--shadow-card); }
+.replay-cta:active { scale: 0.99; }
+.replay-cta-bg { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; opacity: 0.55; transition: scale 1.2s var(--ease-out), opacity 400ms; }
+.replay-cta::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, #110b07f2 0%, #110b07bf 55%, #110b0733 100%); }
+.replay-cta:hover .replay-cta-bg { scale: 1.04; opacity: 0.7; }
+.replay-cta-play {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f0c48c, #c98f55);
+  color: #2a170a;
+  box-shadow: 0 8px 24px -8px #f0c48c99;
+  transition: scale 250ms var(--ease-out);
+}
+.replay-cta-play svg { width: 22px; height: 22px; margin-left: 3px; }
+.replay-cta-play::after { content: ""; position: absolute; inset: -6px; border-radius: inherit; border: 2px solid #f0c48c; opacity: 0; animation: cta-ping 2.4s var(--ease-out) infinite; }
+.replay-cta:hover .replay-cta-play { scale: 1.08; }
+@keyframes cta-ping { 0% { transform: scale(0.85); opacity: 0.7; } 70%, 100% { transform: scale(1.35); opacity: 0; } }
+.replay-cta-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 2px; }
+.replay-cta-eyebrow { font-size: 12px; font-weight: 500; color: #d2a958; }
+.replay-cta-title { font-size: clamp(20px, 2.2vw, 26px); font-weight: 600; line-height: 1.25; color: #f4eddc; }
+.replay-cta-sub { font-size: 13px; color: #c8b9a4; }
+.replay-cta-3d { position: relative; flex-shrink: 0; width: 220px; height: 92px; perspective: 600px; perspective-origin: 50% 0%; }
+.replay-cta-floor {
+  position: absolute;
+  inset: 26px 14px 0;
+  border-radius: 8px;
+  background: radial-gradient(circle at 1px 1px, #f4eddc22 1px, transparent 1.5px) 0 0 / 12px 12px, #ffffff0d;
+  transform-style: preserve-3d;
+  transform: rotateX(58deg) rotateZ(-30deg);
+  animation: cta-spin 9s ease-in-out infinite alternate;
+}
+.replay-cta-floor .r3d-col { --color-chart: #d99a5c; width: 12px; height: 12px; margin: -6px 0 0 -6px; }
+@keyframes cta-spin { from { transform: rotateX(58deg) rotateZ(-34deg); } to { transform: rotateX(58deg) rotateZ(-14deg); } }
+@media (max-width: 639px) {
+  .replay-cta { padding: 16px; gap: 14px; }
+  .replay-cta-play { width: 46px; height: 46px; }
+  .replay-cta-3d { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .replay-cta-play::after, .replay-cta-floor { animation: none; }
+}
+
+/* ---------- เส้นทางของสมาชิก (CustomersStory.jsx, customers/*) ---------- */
+.journey-lede { padding: 8px 4px 4px; }
+.journey-eyebrow { font-size: 13px; font-weight: 600; color: var(--color-chart); }
+.journey-title { margin-top: 6px; max-width: 22ch; font-size: clamp(30px, 4.2vw, 52px); font-weight: 600; line-height: 1.15; color: var(--color-ink); text-wrap: balance; }
+.journey-title em, .journey-h2 em { font-style: normal; color: var(--color-chart); }
+.journey-text { margin-top: 12px; max-width: 60ch; font-size: 16px; line-height: 1.7; color: var(--color-ink-subtle); }
+.journey-card {
+  padding: 24px 24px 20px;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  scroll-margin-top: calc(var(--bar-h, 64px) + 12px);
+}
+.journey-head { margin-bottom: 16px; }
+.journey-h2 { margin-top: 4px; font-size: clamp(22px, 2.4vw, 30px); font-weight: 600; line-height: 1.25; color: var(--color-ink); text-wrap: balance; }
+.journey-legend { margin-top: 8px; font-size: 13px; line-height: 1.6; color: var(--color-ink-muted); }
+.journey-key { display: inline-block; vertical-align: middle; margin: 0 4px 0 8px; background: var(--life-tick); }
+.journey-key:first-child { margin-left: 0; }
+.journey-key.is-line { width: 18px; height: 2px; opacity: 0.45; }
+.journey-key.is-tick { width: 2px; height: 10px; }
+
+/* การ์ดกลุ่ม = ปุ่มกรอง */
+.journey-groups { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
+.journey-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  text-align: left;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--color-ink-subtle);
+  transition: background-color 200ms, border-color 200ms, scale 150ms;
+}
+.journey-group:hover { background: var(--color-surface-hover); }
+.journey-group:active { scale: 0.98; }
+.journey-group b { font-size: 24px; font-weight: 600; line-height: 1.15; color: var(--color-ink); font-variant-numeric: tabular-nums; }
+.journey-group[aria-pressed="true"] { border-color: var(--dot-hi); background: color-mix(in oklab, var(--dot-hi) 10%, var(--color-surface)); }
+.journey-group[aria-pressed="true"] b { color: var(--dot-hi); }
+.journey-caption { margin-top: 12px; max-width: 70ch; font-size: 14px; line-height: 1.7; color: var(--color-ink-subtle); animation: fade-up 400ms var(--ease-out) both; }
+.journey-caption b { color: var(--color-ink); font-weight: 600; }
+
+/* ภาพเส้น */
+:root { --life-tick: #7d5134; --life-line: #b8977a; }
+:root[data-theme="dark"] { --life-tick: #c29470; --life-line: #7a5a45; }
+.lifelines { position: relative; touch-action: pan-y; cursor: crosshair; }
+.lifelines canvas { position: absolute; inset: 0; }
+.lifelines-note {
+  position: absolute;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--color-ink-muted);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.lifelines-guide { position: absolute; left: 0; right: 0; height: 1px; background: var(--dot-hi); opacity: 0.7; pointer-events: none; }
+.lifelines-axis { position: relative; height: 22px; margin-top: 6px; border-top: 1px solid var(--color-line); }
+.lifelines-axis span { position: absolute; top: 4px; font-size: 11px; color: var(--color-ink-muted); white-space: nowrap; }
+.loupe {
+  z-index: 2;
+  padding: 10px 12px 12px;
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--color-surface) 94%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.45), 0 0 0 1px var(--color-line);
+  pointer-events: none;
+  animation: fade-in 160ms ease-out;
+}
+.loupe.is-docked { position: absolute; left: 0; right: 0; bottom: 8px; margin: 0 auto; max-width: 340px; }
+.loupe svg { display: block; width: 100%; height: auto; margin-bottom: 8px; }
+.loupe-line { fill: var(--dot); opacity: 0.35; }
+.loupe-tick { fill: var(--dot); }
+.loupe .is-dim { opacity: 0.25; }
+.loupe .is-hi .loupe-line, .loupe .is-hi .loupe-tick { fill: var(--dot-hi); }
+.loupe .is-on .loupe-line { fill: var(--dot-hi); opacity: 0.7; }
+.loupe .is-on .loupe-tick { fill: var(--dot-hi); }
+.loupe-title { font-size: 13px; font-weight: 600; color: var(--color-ink); }
+.loupe-title span { font-weight: 400; color: var(--color-ink-subtle); }
+.loupe-body { margin-top: 2px; font-size: 12px; color: var(--color-ink-subtle); font-variant-numeric: tabular-nums; }
+.loupe-body b { color: var(--color-ink); font-weight: 600; }
+.loupe-status { display: inline-block; margin-top: 6px; padding: 1px 8px; border-radius: 999px; font-size: 11px; background: var(--color-canvas); color: var(--color-ink-muted); }
+.loupe-status.is-active { background: color-mix(in oklab, var(--dot-hi) 16%, transparent); color: var(--dot-hi); }
+
+/* ตารางรุ่น */
+.cohort-scroll { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
+.cohort-table { width: 100%; border-collapse: separate; border-spacing: 3px; font-variant-numeric: tabular-nums; }
+.cohort-corner, .cohort-k { font-size: 11px; font-weight: 500; color: var(--color-ink-muted); text-align: center; }
+.cohort-corner { text-align: left; padding-right: 8px; white-space: nowrap; }
+.cohort-label { padding-right: 8px; font-size: 12px; font-weight: 500; text-align: left; white-space: nowrap; color: var(--color-ink); }
+.cohort-label small { margin-left: 6px; font-size: 11px; font-weight: 400; color: var(--color-ink-muted); }
+.cohort-cell {
+  height: 28px;
+  min-width: 34px;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 11px;
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 400ms ease, transform 500ms var(--ease-out);
+}
+.cohort.is-in .cohort-cell { opacity: 1; transform: none; }
+.cohort-cell.lv-1, .cohort-scale .lv-1 { background: var(--roast-1); color: var(--color-ink); }
+.cohort-cell.lv-2, .cohort-scale .lv-2 { background: var(--roast-2); color: var(--color-ink); }
+.cohort-cell.lv-3, .cohort-scale .lv-3 { background: var(--roast-3); color: var(--color-canvas); }
+.cohort-cell.lv-4, .cohort-scale .lv-4 { background: var(--roast-4); color: var(--color-canvas); }
+.cohort-cell.lv-5, .cohort-scale .lv-5 { background: var(--roast-5); color: var(--color-canvas); }
+.cohort-cell.is-partial {
+  background-image: repeating-linear-gradient(135deg, transparent 0 4px, color-mix(in oklab, var(--color-surface) 55%, transparent) 4px 7px);
+}
+.cohort-empty { background: transparent; }
+.cohort-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 10px; font-size: 12px; color: var(--color-ink-muted); }
+.cohort-scale { display: inline-flex; align-items: center; gap: 3px; }
+.cohort-scale i { display: inline-block; width: 16px; height: 10px; border-radius: 2px; }
+.cohort-scale i:first-of-type { margin-left: 4px; }
+.cohort-scale i:last-of-type { margin-right: 4px; }
+
+/* ชวนกลับ */
+.journey-winback-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 10px; }
+.journey-winback b { display: block; font-size: 34px; font-weight: 600; line-height: 1.1; color: var(--color-ink); }
+.journey-winback p:not(.journey-eyebrow) { margin-top: 6px; max-width: 46ch; font-size: 14px; line-height: 1.7; color: var(--color-ink-subtle); }
+.journey-link { margin-top: 10px; font-size: 13px; font-weight: 500; color: var(--color-chart); text-decoration: underline; text-underline-offset: 3px; }
+
+@media (max-width: 1023px) {
+  .journey-groups { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 639px) {
+  .journey-card { padding: 18px 16px 16px; }
+  .journey-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .journey-groups .journey-group:first-child { grid-column: 1 / -1; }
+  .journey-group b { font-size: 20px; }
+  .lifelines-note { display: none; }
+  .cohort-table { table-layout: fixed; border-spacing: 2px; }
+  .cohort-corner { width: 52px; font-size: 10px; }
+  .cohort-k { font-size: 9px; }
+  .cohort-label { padding-right: 4px; font-size: 11px; }
+  .cohort-cell { min-width: 0; height: 18px; border-radius: 3px; }
+  .cohort-cell span { display: none; }
+  .cohort-label small { display: none; }
+  .journey-winback-grid { grid-template-columns: 1fr; }
+}
+
 /* ---------- จังหวะของแต่ละสาขา (BranchRhythmCard.jsx) ---------- */
 .rhythm { display: block; overflow: visible; font-family: var(--font-sans); }
 .rhythm path, .rhythm line, .rhythm circle, .rhythm rect { transition: d 800ms var(--ease-out), cx 300ms var(--ease-out), cy 300ms var(--ease-out), x1 600ms var(--ease-out), x2 600ms var(--ease-out), x 600ms var(--ease-out); }

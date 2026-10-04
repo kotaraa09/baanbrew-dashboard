@@ -3,7 +3,7 @@ import Papa from "papaparse";
 import TrendCard from "./components/TrendCard.jsx";
 import BranchCard from "./components/BranchCard.jsx";
 import TopProductsCard from "./components/TopProductsCard.jsx";
-import ReplayCard from "./components/ReplayCard.jsx";
+import ReplayCard, { MS_PER_WEEK } from "./components/ReplayCard.jsx";
 import TracePanel from "./components/TracePanel.jsx";
 import ThemeToggle from "./components/ThemeToggle.jsx";
 import DataHeadline from "./components/DataHeadline.jsx";
@@ -140,7 +140,16 @@ function Dashboard({ data }) {
     () => (replayUsed ? replayFrames(data.rows, data.branchInfo, data.first, data.last) : null),
     [replayUsed, data]
   );
-  const replayMonths = Math.round(resolveRange("all", data.first, data.last).days / 30.44);
+  const allDays = resolveRange("all", data.first, data.last).days;
+  const replayMonths = Math.round(allDays / 30.44);
+  const replaySeconds = Math.round(((allDays / 7) * MS_PER_WEEK) / 1000 / 5) * 5;
+  // แท่งตัวอย่างบนการ์ดเชิญ: ยอดขายรวมของแต่ละสาขา (เรียงตามแผนที่คร่าว ๆ ไม่ต้องตรง)
+  const branchTotals = useMemo(() => {
+    const sum = new Map();
+    for (const r of data.rows) sum.set(r.branch, (sum.get(r.branch) ?? 0) + r.revenue);
+    const max = Math.max(...sum.values());
+    return [...sum.entries()].map(([branch, v]) => ({ branch, share: v / max }));
+  }, [data.rows]);
 
   const range = useMemo(() => resolveRange(rangeKey, data.first, data.last), [rangeKey, data]);
   const [granularity, setGranularity] = useState(() => defaultGranularity(range.days));
@@ -261,22 +270,38 @@ function Dashboard({ data }) {
             ? `เทียบกับ ${formatRange(range.previous.start, range.previous.end)}`
             : "ช่วงนี้ไม่มีช่วงก่อนหน้าให้เทียบ"}
         </p>
-        {!replayOpen && (
-          <button
-            ref={replayButtonRef}
-            type="button"
-            onClick={openReplay}
-            className="group ml-auto inline-flex h-8 animate-fade-in items-center gap-2 rounded-lg border border-line-strong bg-surface pr-3 pl-2 text-[13px] font-medium text-ink shadow-[0_1px_0_0_rgb(0_0_0/0.05)] transition-[background-color,scale] hover:bg-surface-hover active:scale-[0.97]"
-          >
-            <span className="inline-flex size-5 items-center justify-center rounded-full bg-chart text-on-chart transition-transform group-hover:scale-110">
-              <svg viewBox="0 0 20 20" className="ml-px size-3" fill="currentColor" aria-hidden="true">
-                <path d="M6 4.2v11.6a.6.6 0 0 0 .9.5l9.2-5.8a.6.6 0 0 0 0-1L6.9 3.7a.6.6 0 0 0-.9.5Z" />
-              </svg>
-            </span>
-            ย้อนดู {replayMonths} เดือน
-          </button>
-        )}
       </div>
+
+      {!replayOpen && (
+        <button ref={replayButtonRef} type="button" onClick={openReplay} className="replay-cta theme-dark animate-rise">
+          <img src={`${import.meta.env.BASE_URL}media/band-dusk-sm.webp`} alt="" className="replay-cta-bg" />
+          <span className="replay-cta-play" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="currentColor">
+              <path d="M6 4.2v11.6a.6.6 0 0 0 .9.5l9.2-5.8a.6.6 0 0 0 0-1L6.9 3.7a.6.6 0 0 0-.9.5Z" />
+            </svg>
+          </span>
+          <span className="replay-cta-copy">
+            <span className="replay-cta-eyebrow">ไทม์ไลน์ยอดขายแยกสาขา · {replayMonths} เดือน</span>
+            <span className="replay-cta-title font-display">ดูบ้านบรูโตขึ้นทีละอาทิตย์</span>
+            <span className="replay-cta-sub">
+              {data.branches.length} สาขาเป็นแท่ง 3 มิติบนแผนที่ กดแล้วเล่นเองประมาณ {replaySeconds} วินาที
+            </span>
+          </span>
+          <span className="replay-cta-3d" aria-hidden="true">
+            <span className="replay-cta-floor">
+              {branchTotals.map((b, k) => (
+                <span key={b.branch} className="r3d-col" style={{ left: `${18 + k * 16}%`, top: `${30 + (k % 2) * 34}%`, "--h": `${10 + b.share * 46}px` }}>
+                  <i className="r3d-face is-n" />
+                  <i className="r3d-face is-s" />
+                  <i className="r3d-face is-w" />
+                  <i className="r3d-face is-e" />
+                  <i className="r3d-face is-top" />
+                </span>
+              ))}
+            </span>
+          </span>
+        </button>
+      )}
 
       <Collapsible open={replayOpen}>
         {frames && <ReplayCard key={replaySession} frames={frames} branchInfo={data.branchInfo} onClose={closeReplay} />}

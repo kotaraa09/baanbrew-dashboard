@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Card, Segmented, prefersReducedMotion } from "./ui.jsx";
 import { formatBaht, formatDate, formatMonth, formatNumber } from "../lib/metrics.js";
 
 // เล่นย้อนหลังทีละสัปดาห์ ความเร็วปกติ 1 สัปดาห์ = 250ms (ข้อมูล ~77 สัปดาห์ ≈ 20 วินาที)
-const MS_PER_WEEK = 250;
+export const MS_PER_WEEK = 250;
 const SPEEDS = [
   { value: 0.5, label: "ช้า" },
   { value: 1, label: "ปกติ" },
@@ -14,7 +14,6 @@ const SPEEDS = [
 
 const MAP_W = 400;
 const MAP_H = 340;
-const MAX_R = 22;
 const KM_PER_DEG_LAT = 111;
 
 // แม่น้ำเจ้าพระยาแบบคร่าว ๆ (lat, lng) ใช้เป็นจุดอ้างอิงให้รู้ว่าอยู่ตรงไหนของกรุงเทพฯ ไม่ใช่แผนที่จริง
@@ -26,14 +25,48 @@ const RIVER = [
   [13.635, 100.535], [13.615, 100.555], [13.6, 100.585], [13.58, 100.6],
 ];
 
-// ตำแหน่งป้ายชื่อ (px จากจุดสาขา) สามสาขาย่านปทุมวัน-สีลมอยู่ใกล้กันมาก จึงกระจายป้ายออกคนละทิศ
-const LABEL_OFFSET = {
-  สยาม: { dx: 34, dy: -26 },
-  มหาวิทยาลัย: { dx: 40, dy: 16 },
-  สีลม: { dx: -34, dy: 28 },
-  อารีย์: { dx: 30, dy: -10 },
-  บางนา: { dx: 30, dy: 4 },
-};
+// ป้ายชื่อวางบนจอ (2 มิติ) ที่ยอดแท่ง ถ้าชนกันให้ลองตำแหน่งถัดไป แล้วลากเส้นโยงกลับไปที่แท่ง
+// สามสาขาย่านปทุมวัน-สีลมกับอารีย์อยู่ใกล้กันมากบนแผนที่ ป้ายจึงต้องหลบกันเสมอ
+function placeLabels(anchors, W, H) {
+  const placed = [];
+  const PAD = 4;
+  const overlap = (r) => {
+    let area = 0;
+    for (const p of placed) {
+      const w = Math.min(r.x + r.w, p.x + p.w) + PAD - Math.max(r.x, p.x);
+      const h = Math.min(r.y + r.h, p.y + p.h) + PAD - Math.max(r.y, p.y);
+      if (w > 0 && h > 0) area += w * h;
+    }
+    const out = r.x < 2 || r.y < 2 || r.x + r.w > W - 2 || r.y + r.h > H - 2;
+    return area + (out ? 1e6 : 0);
+  };
+  // ป้ายของแท่งสูงวางก่อน (อยู่ใกล้แท่งที่สุด)
+  const order = [...anchors].sort((a, b) => a.y - b.y);
+  const out = new Map();
+  for (const a of order) {
+    const { w, h } = a;
+    // ตำแหน่งที่ลอง เรียงจากใกล้ไปไกล: เหนือแท่ง, ซ้าย, ขวา, เฉียงขึ้น, ไกลออกไปอีก, ใต้แท่ง
+    const tries = [[-w / 2, -h - 10]];
+    for (const d of [16, 40, 70]) {
+      tries.push([-w - d, -h / 2], [d, -h / 2], [-w - d + 6, -h - 16 - d / 2], [d - 6, -h - 16 - d / 2]);
+    }
+    tries.push([-w / 2, -h - 56], [-w / 2, 14], [-w - 16, 14], [16, 14], [-w - 40, 40], [40, 40]);
+    let best = null;
+    for (const [dx, dy] of tries) {
+      const c = { x: a.x + dx, y: a.y + dy, w, h };
+      const cost = overlap(c);
+      if (!best || cost < best.cost) best = { ...c, cost };
+      if (cost === 0) break;
+    }
+    const r = best;
+    placed.push(r);
+    // จุดบนขอบป้ายที่ใกล้แท่งที่สุด สำหรับเส้นโยง
+    const ex = Math.min(Math.max(a.x, r.x), r.x + r.w);
+    const ey = Math.min(Math.max(a.y, r.y), r.y + r.h);
+    out.set(a.key, { x: r.x, y: r.y, ax: a.x, ay: a.y, ex, ey, lead: Math.hypot(ex - a.x, ey - a.y) > 12 });
+  }
+  return out;
+}
 
 // แปลง lat/lng เป็นพิกัดบน SVG โดยคงสัดส่วนจริง (ลองจิจูดหดตาม cos(ละติจูด))
 function makeProjection(points) {
@@ -67,93 +100,175 @@ function smoothPath(pts) {
   return `${d} L${last.x},${last.y}`;
 }
 
-function ReplayMap({ branches, t, maxValue }) {
+// แผนที่ 3 มิติด้วย CSS 3D (ไม่ใช้ไลบรารี): พื้นคือแผนที่เดิมเอียงลง แต่ละสาขาเป็นแท่งที่สูงตามยอดขายต่อวัน
+// มุมกล้องหมุนช้า ๆ ตามเวลาที่เล่น ป้ายชื่อหันเข้าหาคนดูเสมอ (หมุนกลับมุมเดียวกับพื้น)
+const COL_MAX = 120; // ความสูงแท่ง (px) ของยอดสูงสุดตลอดช่วง
+// มุมกล้อง: เอียงพอให้เห็นความสูงของแท่ง แต่ยังอ่านเป็นแผนที่ได้ · "มองจากด้านบน" = แผนที่แบนแบบเดิม
+const VIEWS = {
+  "3d": { tilt: 42, spin: (p) => -18 + 10 * p },
+  top: { tilt: 0, spin: () => 0 },
+};
+const CAMERA_MS = 900;
+// พื้นแผนที่กว้างกว่ากรอบมาก (ขยายออกด้านละ 60%) แล้วจางหายรอบ ๆ จะได้ไม่เห็นขอบแผ่น
+const BLEED = 0.6;
+const WORLD = { x: -MAP_W * BLEED, y: -MAP_H * BLEED, w: MAP_W * (1 + 2 * BLEED), h: MAP_H * (1 + 2 * BLEED) };
+
+function ReplayMap({ branches, t, maxT, maxValue, view }) {
   const { project, pxPerKm } = useMemo(() => makeProjection(branches), [branches]);
   const river = useMemo(() => smoothPath(RIVER.map(([lat, lng]) => project(lat, lng))), [project]);
   const kmBar = 2 * pxPerKm;
   const riverLabel = project(13.684, 100.519);
+  // มุมที่แสดงจริง ตามหลัง view หนึ่งเฟรม: เปิด transition ก่อน แล้วค่อยเปลี่ยนมุม กล้องจึงบินไปแบบนุ่ม
+  const [shown, setShown] = useState(view);
+  const cam = VIEWS[shown];
+  const spin = cam.spin(maxT ? t / maxT : 1);
+  const stageRef = useRef(null);
+  const [moving, setMoving] = useState(false);
+  const tops = useRef({});
+  const tags = useRef({});
+  const leads = useRef({});
 
-  // วงใหญ่วาดก่อน วงเล็กจะได้ไม่ถูกบัง
-  const ordered = [...branches].sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
+  // อ่านตำแหน่งยอดแท่งบนจอ (getBoundingClientRect รู้ผลของ transform 3 มิติแล้ว) แล้ววางป้าย
+  const layout = () => {
+    if (!stageRef.current) return;
+    const box = stageRef.current.getBoundingClientRect();
+    const anchors = [];
+    for (const b of branches) {
+      const top = tops.current[b.branch];
+      const tag = tags.current[b.branch];
+      if (!top || !tag) continue;
+      const r = top.getBoundingClientRect();
+      anchors.push({ key: b.branch, x: r.left + r.width / 2 - box.left, y: r.top - box.top, w: tag.offsetWidth, h: tag.offsetHeight });
+    }
+    const pos = placeLabels(anchors, box.width, box.height);
+    for (const [key, p] of pos) {
+      tags.current[key].style.transform = `translate(${p.x}px, ${p.y}px)`;
+      const line = leads.current[key];
+      line.setAttribute("x1", p.ax);
+      line.setAttribute("y1", p.ay);
+      line.setAttribute("x2", p.ex);
+      line.setAttribute("y2", p.ey);
+      line.style.opacity = p.lead ? 1 : 0;
+    }
+  };
+  const layoutRef = useRef(layout);
+  layoutRef.current = layout;
+  useLayoutEffect(layout);
+
+  // สลับมุมมอง: กล้องเคลื่อนด้วย CSS transition ป้ายต้องตามทุกเฟรมจนกล้องหยุด
+  const firstView = useRef(true);
+  useEffect(() => {
+    if (firstView.current) {
+      firstView.current = false;
+      return;
+    }
+    setMoving(true);
+    let raf = requestAnimationFrame(() => setShown(view));
+    const start = performance.now();
+    const follow = (now) => {
+      layoutRef.current();
+      if (now - start < CAMERA_MS + 80) raf = requestAnimationFrame(follow);
+      else setMoving(false);
+    };
+    requestAnimationFrame(() => (raf = requestAnimationFrame(follow)));
+    return () => cancelAnimationFrame(raf);
+  }, [view]);
 
   return (
-    <svg viewBox={`0 0 ${MAP_W} ${MAP_H}`} className="block h-auto w-full" aria-hidden="true">
-      <defs>
-        <pattern id="replay-dots" width="16" height="16" patternUnits="userSpaceOnUse">
-          <circle cx="1" cy="1" r="1" fill="var(--color-line)" />
-        </pattern>
-        <radialGradient id="replay-glow">
-          <stop offset="0%" stopColor="var(--color-chart)" stopOpacity="0.35" />
-          <stop offset="100%" stopColor="var(--color-chart)" stopOpacity="0" />
-        </radialGradient>
-      </defs>
-      <rect width={MAP_W} height={MAP_H} rx="8" fill="var(--color-surface-hover)" />
-      <rect width={MAP_W} height={MAP_H} rx="8" fill="url(#replay-dots)" />
-      <path d={river} fill="none" stroke="var(--color-water)" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
-      <text x={riverLabel.x + 10} y={riverLabel.y + 4} fontSize="11" fill="var(--color-water-ink)">
-        แม่น้ำเจ้าพระยา
-      </text>
-
-      {/* มาตราส่วน 2 กม. */}
-      <g transform={`translate(14 ${MAP_H - 16})`}>
-        <path d={`M0,-4 V0 H${kmBar} V-4`} fill="none" stroke="var(--color-ink-muted)" strokeWidth="1.25" />
-        <text x={kmBar + 6} y="1" fontSize="11" fill="var(--color-ink-muted)">
-          2 กม.
-        </text>
-      </g>
-
-      {ordered.map((b) => {
-        const { x, y } = project(b.lat, b.lng);
-        const r = b.value ? Math.max(3, MAX_R * Math.sqrt(b.value / maxValue)) : 0;
-        const off = LABEL_OFFSET[b.branch] ?? { dx: 30, dy: 0 };
-        const anchor = off.dx < 0 ? "end" : "start";
-        const lx = x + off.dx;
-        const ly = y + off.dy;
-        // วงกระเพื่อมตอนเปิดสาขาใหม่: ขยายออกและจางหายใน ~4 สัปดาห์หลังเปิด
-        const sinceOpen = b.openIndex != null ? t - (b.openIndex - 1) : null;
-        const burst = sinceOpen != null && sinceOpen > 0 && sinceOpen < 4 ? sinceOpen / 4 : null;
-        const isNew = sinceOpen != null && sinceOpen > 0 && sinceOpen < 8;
-
-        return (
-          <g key={b.branch}>
-            {b.value == null ? (
-              <circle cx={x} cy={y} r="6" fill="none" stroke="var(--color-line-strong)" strokeDasharray="2 2" />
-            ) : (
-              <>
-                <circle cx={x} cy={y} r={r * 2} fill="url(#replay-glow)" />
-                <circle cx={x} cy={y} r={r} fill="var(--color-chart)" fillOpacity="0.18" stroke="var(--color-chart)" strokeWidth="1.5" />
-                <circle cx={x} cy={y} r="2.5" fill="var(--color-chart)" />
-              </>
-            )}
-            {burst != null && (
-              <circle cx={x} cy={y} r={8 + burst * 40} fill="none" stroke="var(--color-chart)" strokeWidth="2" opacity={1 - burst} />
-            )}
-            <line
-              x1={x + Math.sign(off.dx) * Math.max(r, 6)}
-              y1={y}
-              x2={lx - Math.sign(off.dx) * 4}
-              y2={ly - 4}
-              stroke="var(--color-line-strong)"
-              strokeWidth="1"
-            />
-            <text x={lx} y={ly - 1} fontSize="13" fontWeight="600" textAnchor={anchor} fill={b.value == null ? "var(--color-ink-muted)" : "var(--color-ink)"}>
-              {b.branch}
+    <div
+      ref={stageRef}
+      className={`r3d ${moving ? "is-moving" : ""} view-${shown}`}
+      style={{ "--rz": `${spin}deg`, "--rx": `${cam.tilt}deg`, "--camera-ms": `${CAMERA_MS}ms` }}
+      aria-hidden="true"
+    >
+      <div className="r3d-floor">
+        <div className="r3d-world">
+        <svg viewBox={`${WORLD.x} ${WORLD.y} ${WORLD.w} ${WORLD.h}`} className="r3d-map">
+          <defs>
+            <pattern id="replay-dots" width="16" height="16" patternUnits="userSpaceOnUse">
+              <circle cx="1" cy="1" r="1" fill="var(--map-dot)" />
+            </pattern>
+            <radialGradient id="replay-glow">
+              <stop offset="0%" stopColor="var(--color-chart)" stopOpacity="0.45" />
+              <stop offset="100%" stopColor="var(--color-chart)" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          <rect x={WORLD.x} y={WORLD.y} width={WORLD.w} height={WORLD.h} fill="var(--map-floor)" />
+          <rect x={WORLD.x} y={WORLD.y} width={WORLD.w} height={WORLD.h} fill="url(#replay-dots)" />
+          <path d={river} fill="none" stroke="var(--map-water)" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
+          <text x={riverLabel.x + 10} y={riverLabel.y + 4} fontSize="12" fontWeight="500" fill="var(--map-water-ink)">
+            แม่น้ำเจ้าพระยา
+          </text>
+          <g transform={`translate(14 ${MAP_H - 16})`}>
+            <path d={`M0,-4 V0 H${kmBar} V-4`} fill="none" stroke="var(--color-ink-muted)" strokeWidth="1.25" />
+            <text x={kmBar + 6} y="1" fontSize="11" fill="var(--color-ink-muted)">
+              2 กม.
             </text>
-            <text x={lx} y={ly + 14} fontSize="11" textAnchor={anchor} fill="var(--color-ink-muted)" className="tabular-nums">
-              {b.value == null ? "ยังไม่เปิด" : `${formatBaht(b.value)}/วัน`}
-            </text>
-            {isNew && (
-              <g transform={`translate(${anchor === "end" ? lx - 58 : lx} ${ly - 36})`}>
-                <rect width="58" height="18" rx="9" fill="var(--color-chart)" />
-                <text x="29" y="12.5" fontSize="11" fontWeight="600" textAnchor="middle" fill="var(--color-on-chart)">
-                  สาขาใหม่
-                </text>
-              </g>
-            )}
           </g>
+          {branches.map((b) => {
+            const { x, y } = project(b.lat, b.lng);
+            const sinceOpen = b.openIndex != null ? t - (b.openIndex - 1) : null;
+            const burst = sinceOpen != null && sinceOpen > 0 && sinceOpen < 4 ? sinceOpen / 4 : null;
+            const glow = b.value ? 14 + 34 * Math.sqrt(b.value / maxValue) : 0;
+            return (
+              <g key={b.branch}>
+                {b.value == null ? (
+                  <rect x={x - 8} y={y - 8} width="16" height="16" rx="3" fill="none" stroke="var(--color-line-strong)" strokeDasharray="2 2" />
+                ) : (
+                  <circle cx={x} cy={y} r={glow} fill="url(#replay-glow)" />
+                )}
+                {burst != null && (
+                  <circle cx={x} cy={y} r={10 + burst * 46} fill="none" stroke="var(--color-chart)" strokeWidth="2" opacity={1 - burst} />
+                )}
+              </g>
+            );
+          })}
+        </svg>
+
+        {branches.map((b) => {
+          const { x, y } = project(b.lat, b.lng);
+          const h = b.value ? 6 + COL_MAX * (b.value / maxValue) : 0;
+          return (
+            <div key={b.branch} className="r3d-col" style={{
+                left: `${((x - WORLD.x) / WORLD.w) * 100}%`,
+                top: `${((y - WORLD.y) / WORLD.h) * 100}%`,
+                "--h": `${h}px`,
+                "--s": b.value ? 0.6 + 1.8 * Math.sqrt(b.value / maxValue) : 1,
+              }}
+            >
+              {h > 0 && (
+                <>
+                  <i className="r3d-face is-n" />
+                  <i className="r3d-face is-s" />
+                  <i className="r3d-face is-w" />
+                  <i className="r3d-face is-e" />
+                </>
+              )}
+              <i ref={(el) => { tops.current[b.branch] = el; }} className={`r3d-face is-top ${h > 0 ? "" : "is-flat"}`} />
+            </div>
+          );
+        })}
+        </div>
+      </div>
+
+      {/* ป้ายชื่อบนจอ + เส้นโยงไปยอดแท่ง */}
+      <svg className="r3d-leads">
+        {branches.map((b) => (
+          <line key={b.branch} ref={(el) => { leads.current[b.branch] = el; }} />
+        ))}
+      </svg>
+      {branches.map((b) => {
+        const sinceOpen = b.openIndex != null ? t - (b.openIndex - 1) : null;
+        const isNew = sinceOpen != null && sinceOpen > 0 && sinceOpen < 8;
+        return (
+          <div key={b.branch} ref={(el) => { tags.current[b.branch] = el; }} className={`r3d-tag ${b.value == null ? "is-closed" : ""}`}>
+            {isNew && <span className="r3d-new">สาขาใหม่</span>}
+            <b>{b.branch}</b>
+            <span>{b.value == null ? "ยังไม่เปิด" : `${formatBaht(b.value)}/วัน`}</span>
+          </div>
         );
       })}
-    </svg>
+    </div>
   );
 }
 
@@ -339,6 +454,7 @@ export default function ReplayCard({ frames, branchInfo, onClose }) {
   const [t, setT] = useState(reduced ? maxT : 0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
+  const [view, setView] = useState("3d");
   const tRef = useRef(t);
   const playRef = useRef(null);
 
@@ -499,7 +615,18 @@ export default function ReplayCard({ frames, branchInfo, onClose }) {
               .map((b) => `${b.branch} ${b.value == null ? "ยังไม่เปิด" : `${formatBaht(b.value)} ต่อวัน`}`)
               .join(", ")}`}
           >
-            <ReplayMap branches={mapped} t={safeT} maxValue={maxValue} />
+            <div className="mb-2 flex justify-end">
+              <Segmented
+                label="มุมมองแผนที่"
+                value={view}
+                onChange={setView}
+                options={[
+                  { value: "3d", label: "3 มิติ" },
+                  { value: "top", label: "มองจากด้านบน" },
+                ]}
+              />
+            </div>
+            <ReplayMap branches={mapped} t={safeT} maxT={maxT} maxValue={maxValue} view={view} />
           </figure>
         )}
         <div>
@@ -513,7 +640,7 @@ export default function ReplayCard({ frames, branchInfo, onClose }) {
       </div>
 
       <p className="border-t border-line px-4 py-3 text-xs text-ink-muted sm:px-5">
-        ตัวเลขสะสมของอาทิตย์สุดท้ายจะเท่ากับ KPI ช่วง “ทั้งหมด” · วงกลมกับแท่งยิ่งใหญ่ ยิ่งขายต่อวันได้เยอะ (เฉลี่ย 28 วันล่าสุด นับแค่วันที่สาขาเปิดแล้ว) · แผนที่กับแม่น้ำวาดไว้คร่าว ๆ ไม่ได้ตรงเป๊ะ
+        ตัวเลขสะสมของอาทิตย์สุดท้ายจะเท่ากับ KPI ช่วง “ทั้งหมด” · แท่งยิ่งสูงยิ่งยาว ยิ่งขายต่อวันได้เยอะ (เฉลี่ย 28 วันล่าสุด นับแค่วันที่สาขาเปิดแล้ว) · แผนที่กับแม่น้ำวาดไว้คร่าว ๆ ไม่ได้ตรงเป๊ะ
       </p>
     </Card>
   );

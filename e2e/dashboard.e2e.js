@@ -93,13 +93,19 @@ test.describe("ภาพรวม", () => {
     await expect(page.getByRole("dialog")).toBeVisible();
   });
 
-  test("ย้อนดูการเติบโต เปิดและปิดได้", async ({ page }) => {
+  test("ไทม์ไลน์ยอดขายแยกสาขา: การ์ดเชิญเปิดได้ แท่ง 3 มิติครบทุกสาขา และปิดได้", async ({ page }) => {
     await openOverview(page);
-    await page.getByRole("button", { name: /^ย้อนดู \d+ เดือน/ }).click();
+    const cta = page.getByRole("button", { name: /ดูบ้านบรูโตขึ้นทีละอาทิตย์/ });
+    await expect(cta).toContainText(/\d+ เดือน/);
+    await cta.click();
     const replay = page.getByRole("region", { name: "ย้อนดูการเติบโตของเครือร้าน" });
     await expect(replay).toBeVisible();
+    await expect(replay.locator(".r3d-col")).toHaveCount(5);
+    await expect(replay.locator(".r3d-tag")).toHaveCount(5);
+    await replay.getByRole("radio", { name: "มองจากด้านบน" }).click();
+    await expect(replay.locator(".r3d")).toHaveClass(/view-top/);
     await replay.getByRole("button", { name: "ปิด" }).click();
-    await expect(page.getByRole("button", { name: /^ย้อนดู \d+ เดือน/ })).toBeVisible();
+    await expect(cta).toBeVisible();
   });
 
   test("เรื่องเล่า: 7 ขั้น แต่ละขั้นมีตัวเลขจากข้อมูล และไฮไลต์ตามขั้น", async ({ page }) => {
@@ -183,10 +189,43 @@ test.describe("ภาพรวม", () => {
   });
 });
 
+test.describe("ลูกค้า", () => {
+  test("เส้นทางของสมาชิก: กดการ์ดกลุ่มแล้วไฮไลต์ ชี้ที่เส้นเห็นทีละคน และมีตารางรุ่น", async ({ page }) => {
+    await page.goto("/#customers");
+    await expect(page.locator(".journey-title")).toContainText(/สมาชิก [\d,]+\s?คน/);
+    const groups = page.locator(".journey-group");
+    await expect(groups).toHaveCount(5);
+    await expect(groups.first()).toHaveAttribute("aria-pressed", "true");
+    // กดกลุ่ม "ซื้อครั้งเดียว" แล้วคำอธิบายใต้ภาพเปลี่ยนตาม
+    await groups.nth(2).click();
+    await expect(groups.nth(2)).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator(".journey-caption")).toContainText("มาแค่ครั้งเดียว");
+    // ชี้ (มือถือ: แตะ) ที่เส้น แล้วแว่นขยายบอกรายละเอียดของสมาชิกคนนั้น
+    const stage = page.locator(".lifelines");
+    await stage.scrollIntoViewIfNeeded();
+    const box = await stage.boundingBox();
+    if (test.info().project.name === "mobile") await stage.click({ position: { x: box.width * 0.8, y: box.height * 0.3 } });
+    else await page.mouse.move(box.x + box.width * 0.8, box.y + box.height * 0.3);
+    await expect(page.locator(".loupe")).toContainText(/สมาชิก C\d+/);
+    await expect(page.locator(".loupe")).toContainText(/\d+\s?บิล/);
+    // ตารางรุ่น: แถวละเดือนที่ซื้อครั้งแรก ช่องเป็น %
+    const rows = page.locator(".cohort-table tbody tr");
+    expect(await rows.count()).toBeGreaterThan(6);
+    await expect(page.locator(".cohort-cell").first()).toHaveText(/\d+%/);
+    // ปุ่มในกล่องชวนกลับ ไฮไลต์กลุ่มที่ไม่ได้มาเกิน 90 วัน
+    await page.getByRole("button", { name: "ดูเส้นของคนกลุ่มนี้ ↑" }).click();
+    await expect(groups.nth(3)).toHaveAttribute("aria-pressed", "true");
+    // โหมดตัวเลขละเอียดยังอยู่ครบ
+    await page.getByRole("radio", { name: "ตัวเลขละเอียด" }).click();
+    await expect(page.getByText("สมาชิกแต่ละกลุ่ม")).toBeVisible();
+    await page.getByRole("radio", { name: "แบบเล่าเรื่อง" }).click();
+  });
+});
+
 test.describe("แท็บทั้งหมด", () => {
   const TABS = [
     { name: "ภาพรวม", hash: "", expect: "ขายได้" },
-    { name: "ลูกค้า", hash: "#customers", expect: "สมาชิกสำคัญแค่ไหน" },
+    { name: "ลูกค้า", hash: "#customers", expect: "เส้นทางของสมาชิก" },
     { name: "Lab 2.2 · ซ่อมกราฟ", hash: "#lab2", expect: "Lab 2.2 · ซ่อมกราฟแย่" },
     { name: "สด · Firestore", hash: "#live", expect: "เข้าสู่ระบบ" },
     { name: "ทดสอบ Rules", hash: "#rules", expect: "Lab 3.3" },
