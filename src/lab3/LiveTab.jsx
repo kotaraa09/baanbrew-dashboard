@@ -17,9 +17,8 @@ import {
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth, db } from "./firebase.js";
 import { SignInCard, VerifyEmailCard } from "./SignIn.jsx";
-
-// เวลาที่แมวกระโดดลาหลังล็อกอินสำเร็จ (ตรงกับ animation cat-leave ใน index.css)
-const CAT_LEAVE_MS = 1500;
+// เวลาที่แมวกระโดดลาหลังล็อกอินสำเร็จ (ตรงกับ timeline ใน cat/rig.js)
+import { LEAVE_MS as CAT_LEAVE_MS } from "./cat/rig.js";
 import { addDays, todayBangkok } from "./time.js";
 import { BRANCHES } from "./saleModel.js";
 import KpiCard from "../components/KpiCard.jsx";

@@ -165,8 +165,8 @@ export function SignInCard({ success = false }) {
   });
 
   return (
-    // mt-32: ที่ว่างเหนือการ์ดให้แมวนอน (หางพาดอยู่บนขอบการ์ด จึงใช้ padding บนปกติได้)
-    <Card className="relative mx-auto mt-32 max-w-sm animate-rise px-6 py-7">
+    // mt-40: ที่ว่างเหนือการ์ดให้แมวนอน · pt-11: หางกับอุ้งเท้าห้อยลงมาบนการ์ด ไม่ให้ทับหัวข้อ
+    <Card className="relative mx-auto mt-40 max-w-sm animate-rise px-6 pt-11 pb-7">
       <LoginCat ref={cat} mode={catMode} />
       <div className="text-center">
         <h1 className="text-base font-semibold text-ink">ล็อกอินเพื่อดูยอดขายสด</h1>
