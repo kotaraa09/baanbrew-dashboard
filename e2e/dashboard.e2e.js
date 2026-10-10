@@ -293,6 +293,34 @@ test.describe("เข้าสู่ระบบ", () => {
   }
 });
 
+// Lab 4.5B ในโหมดสาธิต (?demo คำนวณจาก CSV ไม่ต้องล็อกอิน)
+test.describe("กราฟซูมวันผิดปกติ", () => {
+  test("คลิกแถวแล้วกราฟยืดออก สลับแถวได้ กดปิดแล้วหดก่อนหายไป", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.goto("/?demo#forecast");
+    const rows = page.locator("tbody tr");
+    await expect(rows).toHaveCount(15);
+    const zoom = page.locator(".grid", { has: page.getByRole("button", { name: "ปิดกราฟ" }) });
+    const height = () => zoom.evaluate((el) => el.getBoundingClientRect().height);
+
+    // เปิด: เริ่มจากหดอยู่ แล้วยืดจนสูงเต็ม (กราฟ 240px + หัว)
+    await rows.nth(1).click();
+    await expect(zoom).toBeVisible();
+    await expect.poll(height).toBeGreaterThan(250);
+    await expect(page.locator("circle.animate-pop")).toHaveCount(1);
+
+    // สลับแถว: กราฟยังเปิดอยู่ หัวเปลี่ยนเป็นแถวใหม่
+    await rows.nth(0).click();
+    await expect(zoom).toContainText("สยาม");
+    await expect.poll(height).toBeGreaterThan(250);
+
+    // ปิด: ระหว่างหดยังเห็นเนื้อหาเดิม (ไม่หายทันที) แล้วค่อยถูกถอดออก
+    await page.getByRole("button", { name: "ปิดกราฟ" }).click();
+    await expect(zoom).toContainText("สยาม");
+    await expect(zoom).toHaveCount(0);
+  });
+});
+
 test.describe("ธีม", () => {
   test("สวิตช์สลับเช้า/ค่ำ และจำค่าหลังรีเฟรช", async ({ page }) => {
     await openOverview(page);
