@@ -440,6 +440,9 @@ export const formatBaht = (n) => `฿${numberFmt.format(n)}`;
 export const formatBahtExact = (n) => `฿${bahtFmt.format(n)}`;
 export const formatBahtShort = (n) =>
   n >= 1_000_000 ? `฿${+(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `฿${+(n / 1_000).toFixed(1)}k` : `฿${Math.round(n)}`;
+// ชื่อที่ไฟล์ Lab 4 (src/lab4/) เรียกใช้
+export const fmtBaht = formatBaht;
+export const fmtShortBaht = formatBahtShort;
 export const formatPercent = (n) => `${Math.abs(n).toFixed(1)}%`;
 
 // วันที่แบบไทยย่อ เช่น "1 เม.ย. 68" (ปี พ.ศ.)

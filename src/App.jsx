@@ -19,6 +19,8 @@ import Lab2Page from "./lab2/Lab2Page.jsx";
 import CustomersView from "./components/CustomersView.jsx";
 // Lab 3 โหลดแบบ lazy: Firebase SDK จะถูกดาวน์โหลดเมื่อเปิดแท็บสด/ทดสอบ Rules เท่านั้น
 const Lab3Page = lazy(() => import("./lab3/Lab3Page.jsx"));
+// Lab 4 อ่านผลวิเคราะห์จาก collection analytics (หรือคำนวณเองในโหมดสาธิต ?demo) ไม่ได้ใช้ข้อมูลของแท็บอื่น
+const Lab4Page = lazy(() => import("./lab4/Lab4Page.jsx"));
 import {
   prepareRows,
   computeKpis,
@@ -384,9 +386,14 @@ const TABS = [
   { value: "lab2", label: "Lab 2.2 · ซ่อมกราฟ", icon: DripperIcon },
   { value: "live", label: "สด · Firestore", icon: LiveIcon },
   { value: "rules", label: "ทดสอบ Rules", icon: ShieldIcon },
+  { value: "analytics", label: "ลูกค้า & เมนู", icon: StoreIcon },
+  { value: "forecast", label: "พยากรณ์ & ผิดปกติ", icon: CalendarIcon },
 ];
 // แท็บ Lab 3 อ่านจาก Firestore ไม่ได้ใช้ sales.csv จึงแสดงได้แม้โหลด CSV ไม่สำเร็จ
 const LAB3_TABS = ["live", "rules"];
+const LAB4_TABS = ["analytics", "forecast"];
+// แท็บที่ไม่ต้องรอ sales.csv โหลดเสร็จ
+const FIRESTORE_TABS = [...LAB3_TABS, ...LAB4_TABS];
 
 // จำแท็บไว้ใน URL (#customers, #lab2) รีเฟรชแล้วยังอยู่แท็บเดิม
 function useTab() {
@@ -475,14 +482,18 @@ export default function App() {
 
       <main className="relative px-4 pt-6 pb-6 sm:px-6 lg:pb-8">
         <div className="mx-auto max-w-6xl space-y-4">
-          {!LAB3_TABS.includes(page) && data.status === "loading" && <LoadingState />}
-          {!LAB3_TABS.includes(page) && data.status === "error" && <ErrorState message={data.message} />}
+          {!FIRESTORE_TABS.includes(page) && data.status === "loading" && <LoadingState />}
+          {!FIRESTORE_TABS.includes(page) && data.status === "error" && <ErrorState message={data.message} />}
 
           {/* key ตามแท็บ: เปลี่ยนหน้าแล้วเนื้อหาใหม่ลอยขึ้นพร้อมจางจากเบลอ */}
           <div key={page} className="page-enter space-y-4">
             {LAB3_TABS.includes(page) ? (
               <Suspense fallback={<Skeleton className="h-40 rounded-[var(--radius-card)] bg-surface" />}>
                 <Lab3Page view={page} />
+              </Suspense>
+            ) : LAB4_TABS.includes(page) ? (
+              <Suspense fallback={<Skeleton className="h-40 rounded-[var(--radius-card)] bg-surface" />}>
+                <Lab4Page view={page} />
               </Suspense>
             ) : (
               data.status === "ready" &&
