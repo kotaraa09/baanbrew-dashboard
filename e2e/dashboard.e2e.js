@@ -152,7 +152,7 @@ test.describe("ภาพรวม", () => {
     await expect(page.locator(".story-recap-list li")).toHaveCount(5);
     await expect(page.locator(".story-recap-list b").first()).toHaveText(/\d+%/);
     // สลับแท็บแล้วกลับมา ยังยุบอยู่
-    await page.getByRole("radio", { name: "ลูกค้า" }).click();
+    await page.getByRole("radio", { name: "ลูกค้า", exact: true }).click();
     await page.getByRole("radio", { name: "ภาพรวม" }).click();
     await expect(page.locator(".story-recap")).toBeVisible();
     // ดูอีกรอบ: กลับมาเป็นเรื่องเต็ม ที่ขั้นแรก
@@ -190,9 +190,29 @@ test.describe("ภาพรวม", () => {
 });
 
 test.describe("ลูกค้า", () => {
+  test("เรื่องเล่าสมาชิก: 9 ขั้นจากข้อมูล ดูจบแล้วยุบเป็นสรุป และกดดูอีกรอบได้", async ({ page }) => {
+    await page.goto("/#customers");
+    const steps = page.locator(".mstory [data-step]");
+    await expect(steps).toHaveCount(9);
+    await expect(steps.first()).toContainText(/สมาชิก [\d,]+\s?คน/);
+    for (let i = 0; i < 9; i++) {
+      await steps.nth(i).evaluate((el) => el.scrollIntoView({ block: "center" }));
+      await expect(steps.nth(i)).toHaveClass(/is-active/);
+    }
+    await page.evaluate(() => window.scrollBy(0, window.innerHeight * 1.5));
+    await expect(page.locator(".story-recap")).toContainText("เส้นทางของสมาชิก");
+    await expect(steps).toHaveCount(0);
+    await expect(page.locator(".story-recap-list li")).toHaveCount(5);
+    // สลับแท็บแล้วกลับมา ยังยุบอยู่
+    await page.getByRole("radio", { name: "ภาพรวม" }).click();
+    await page.getByRole("radio", { name: "ลูกค้า", exact: true }).click();
+    await expect(page.locator(".story-recap")).toContainText("เส้นทางของสมาชิก");
+    await page.getByRole("button", { name: "ดูเรื่องนี้อีกรอบ" }).click();
+    await expect(steps).toHaveCount(9);
+  });
+
   test("เส้นทางของสมาชิก: กดการ์ดกลุ่มแล้วไฮไลต์ ชี้ที่เส้นเห็นทีละคน และมีตารางรุ่น", async ({ page }) => {
     await page.goto("/#customers");
-    await expect(page.locator(".journey-title")).toContainText(/สมาชิก [\d,]+\s?คน/);
     const groups = page.locator(".journey-group");
     await expect(groups).toHaveCount(5);
     await expect(groups.first()).toHaveAttribute("aria-pressed", "true");
@@ -212,9 +232,6 @@ test.describe("ลูกค้า", () => {
     const rows = page.locator(".cohort-table tbody tr");
     expect(await rows.count()).toBeGreaterThan(6);
     await expect(page.locator(".cohort-cell").first()).toHaveText(/\d+%/);
-    // ปุ่มในกล่องชวนกลับ ไฮไลต์กลุ่มที่ไม่ได้มาเกิน 90 วัน
-    await page.getByRole("button", { name: "ดูเส้นของคนกลุ่มนี้ ↑" }).click();
-    await expect(groups.nth(3)).toHaveAttribute("aria-pressed", "true");
     // โหมดตัวเลขละเอียดยังอยู่ครบ
     await page.getByRole("radio", { name: "ตัวเลขละเอียด" }).click();
     await expect(page.getByText("สมาชิกแต่ละกลุ่ม")).toBeVisible();
@@ -234,8 +251,8 @@ test.describe("แท็บทั้งหมด", () => {
   for (const t of TABS) {
     test(`แท็บ ${t.name}: กดแล้วเปิดได้ และจำไว้ใน URL`, async ({ page }) => {
       await openOverview(page);
-      await page.getByRole("radio", { name: t.name }).click();
-      await expect(page.getByRole("radio", { name: t.name })).toHaveAttribute("aria-checked", "true");
+      await page.getByRole("radio", { name: t.name, exact: true }).click();
+      await expect(page.getByRole("radio", { name: t.name, exact: true })).toHaveAttribute("aria-checked", "true");
       await expect(page.locator(".page-enter")).toContainText(t.expect);
       if (t.hash) await expect(page).toHaveURL(new RegExp(`${t.hash}$`));
 

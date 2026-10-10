@@ -1139,3 +1139,16 @@ html { transition: background-color 0.5s ease; }
     transition-delay: 0ms !important;
   }
 }
+
+/* ---------- เรื่องเล่าแท็บลูกค้า (MemberStory.jsx) ---------- */
+.mstory .mstory-swatch { background: var(--life-tick); }
+.mstory-mark { position: absolute; height: 0; border-top: 1px dashed var(--dot-hi); }
+.mstory-mark span {
+  position: absolute;
+  right: 0;
+  bottom: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dot-hi);
+  white-space: nowrap;
+}
