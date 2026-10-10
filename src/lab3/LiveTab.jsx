@@ -14,7 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "./firebase.js";
 import { SignInCard, VerifyEmailCard } from "./SignIn.jsx";
 // เวลาที่แมวกระโดดลาหลังล็อกอินสำเร็จ (ตรงกับ timeline ใน cat/rig.js)
@@ -370,19 +370,6 @@ function LiveDashboard({ user }) {
 
 // ---------- Lab 3.3 · ต้องล็อกอินก่อนเห็นยอดขาย (Prompt 3.3A · หน้าล็อกอินอยู่ใน SignIn.jsx) ----------
 
-function Avatar({ user }) {
-  const [broken, setBroken] = useState(false);
-  const initial = (user.displayName ?? user.email ?? "?").trim().charAt(0).toUpperCase();
-  return user.photoURL && !broken ? (
-    // no-referrer: รูปโปรไฟล์ Google บางครั้งไม่ยอมโหลดถ้าส่ง referrer จาก localhost
-    <img src={user.photoURL} alt="" referrerPolicy="no-referrer" onError={() => setBroken(true)} className="size-7 rounded-full ring-1 ring-line" />
-  ) : (
-    <span aria-hidden="true" className="inline-flex size-7 items-center justify-center rounded-full bg-chart text-xs font-semibold text-on-chart">
-      {initial}
-    </span>
-  );
-}
-
 export default function LiveTab() {
   // undefined = ยังไม่รู้ (Firebase กำลังอ่าน session เดิม), null = ไม่ได้ล็อกอิน
   const [user, setUser] = useState(undefined);
@@ -425,18 +412,8 @@ export default function LiveTab() {
   if (!user.emailVerified) return <VerifyEmailCard user={user} onVerified={() => setVerifiedTick((n) => n + 1)} />;
 
   return (
+    // ชื่อผู้ใช้และปุ่มออกจากระบบอยู่ที่แถบบน (components/Account.jsx) แล้ว
     <div className="space-y-3">
-      <div className="flex animate-fade-in items-center justify-end gap-2.5">
-        <Avatar user={user} />
-        <span className="min-w-0 truncate text-[13px] text-ink-subtle">{user.displayName ?? user.email}</span>
-        <button
-          type="button"
-          onClick={() => signOut(auth)}
-          className="h-8 shrink-0 rounded-lg border border-line-strong bg-surface px-3 text-[13px] font-medium text-ink shadow-[0_1px_0_0_rgb(0_0_0/0.05)] transition-[background-color,scale] hover:bg-surface-hover active:scale-[0.97]"
-        >
-          ออกจากระบบ
-        </button>
-      </div>
       {/* key = uid: เปลี่ยนบัญชีแล้วเริ่ม Dashboard ใหม่ทั้งหมด ไม่ค้างข้อมูลของคนก่อน */}
       <LiveDashboard key={user.uid} user={user} />
     </div>
