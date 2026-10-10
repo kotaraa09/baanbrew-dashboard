@@ -1,12 +1,13 @@
-// แท็บลูกค้าแบบเล่าเรื่อง: "เส้นทางของสมาชิก" สมาชิก 1 คน = 1 เส้น, 1 บิล = 1 ขีด
-// หน้าภาพรวมเล่าเรื่องให้ดูทีละขั้น ส่วนหน้านี้ให้ลองสำรวจเอง: กดการ์ดกลุ่มเพื่อไฮไลต์เส้น, ชี้ที่เส้นเพื่อดูทีละคน
+// แท็บลูกค้าแบบเล่าเรื่อง: "เส้นทางของสมาชิก"
+// เริ่มด้วยเรื่องเล่าแบบเลื่อนดู (MemberStory) แล้วต่อด้วยส่วนให้ลองสำรวจเอง: กดการ์ดกลุ่มเพื่อไฮไลต์เส้น, ชี้ที่เส้นเพื่อดูทีละคน
 // ทุกตัวเลขมาจาก memberJourneys() และ customerView() ไม่มีตัวเลขตายตัว
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { memberJourneys } from "../lib/journeys.js";
 import { ACTIVE_DAYS } from "../lib/customerMetrics.js";
 import { formatMonth, formatNumber } from "../lib/metrics.js";
 import MemberLifelines from "./customers/MemberLifelines.jsx";
 import CohortGrid from "./customers/CohortGrid.jsx";
+import MemberStory from "./customers/MemberStory.jsx";
 
 const pct = (x) => `${Math.round(x * 100)}%`;
 const NB = " ";
@@ -15,7 +16,6 @@ const Num = ({ children }) => <span className="whitespace-nowrap">{children}</sp
 export default function CustomersStory({ view, data }) {
   const j = useMemo(() => memberJourneys(data.rows, data.customers, data.branchInfo, data.last), [data]);
   const [filter, setFilter] = useState("all");
-  const chartRef = useRef(null);
   const { groups } = j;
 
   // การ์ดกลุ่ม = ปุ่มกรอง: กดแล้วเส้นของคนกลุ่มนั้นเข้มขึ้น ที่เหลือจางลง
@@ -59,31 +59,18 @@ export default function CustomersStory({ view, data }) {
     ),
   };
 
-  const showLapsed = () => {
-    setFilter("lapsed");
-    chartRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
   const r1 = j.retention(1);
   const r6 = j.retention(6);
 
   return (
     <div className="space-y-4">
-      {/* หัวเรื่อง */}
-      <section className="journey-lede animate-rise">
-        <p className="journey-eyebrow">เส้นทางของสมาชิก</p>
-        <h2 className="journey-title font-display">
-          สมาชิก <Num>{formatNumber(j.members)} คน</Num> <Num>ทำยอดให้ร้าน <em>{pct(view.kpis.memberShare)}</em></Num>
-        </h2>
-        <p className="journey-text">
-          เคยมาซื้อแล้ว <Num>{formatNumber(j.buyers)} คน</Num> ครึ่งหนึ่งมาซื้อครั้งแรกภายใน <Num>{j.joinToFirst} วัน</Num>หลังสมัคร ส่วนอีก{" "}
-          <Num>{formatNumber(j.never)} คน</Num>สมัครไว้แต่ยังไม่เคยมาเลย
-        </p>
-      </section>
+      {/* เรื่องเล่าแบบเลื่อนดู: ภาพเดียวเปลี่ยนรูปไปทีละขั้น */}
+      <MemberStory j={j} view={view} first={data.first} />
 
       {/* เส้นชีวิต */}
-      <section ref={chartRef} className="journey-card" aria-labelledby="lifelines-title">
+      <section className="journey-card" aria-labelledby="lifelines-title">
         <div className="journey-head">
+          <p className="journey-eyebrow">ลองสำรวจเอง</p>
           <h2 id="lifelines-title" className="journey-h2 font-display">
             {formatNumber(j.buyers)} เส้น คือสมาชิกทุกคนที่เคยซื้อ
           </h2>
@@ -135,31 +122,6 @@ export default function CustomersStory({ view, data }) {
           </p>
         </div>
         <CohortGrid j={j} />
-      </section>
-
-      {/* ชวนใครกลับก่อน */}
-      <section className="journey-card journey-winback">
-        <p className="journey-eyebrow">ถ้าจะทำโปรฯ เริ่มที่ใครดี</p>
-        <div className="journey-winback-grid">
-          <div>
-            <b className="font-display">
-              <Num>{formatNumber(groups.lapsed.count)} คน</Num>
-            </b>
-            <p>
-              ไม่ได้มาเกิน <Num>{ACTIVE_DAYS} วัน</Num> แต่ครึ่งหนึ่งเคยซื้อไปแล้ว <Num>{groups.lapsed.medianBills} บิล</Num>ขึ้นไป รู้จักร้านดีอยู่แล้ว
-              ชวนกลับน่าจะง่ายกว่าหาคนใหม่
-            </p>
-            <button type="button" className="journey-link" onClick={showLapsed}>
-              ดูเส้นของคนกลุ่มนี้ ↑
-            </button>
-          </div>
-          <div>
-            <b className="font-display">
-              <Num>{formatNumber(j.never)} คน</Num>
-            </b>
-            <p>สมัครสมาชิกไว้แต่ยังไม่เคยซื้อ ยังไม่มีเส้นในภาพเลย ลองให้ส่วนลดแก้วแรกดู</p>
-          </div>
-        </div>
       </section>
 
       <p className="px-1 text-xs text-ink-muted">

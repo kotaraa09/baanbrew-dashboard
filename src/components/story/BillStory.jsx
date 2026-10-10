@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { flushSync } from "react-dom";
-import { prefersReducedMotion, useSeen } from "../ui.jsx";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { prefersReducedMotion } from "../ui.jsx";
+import CollapsibleStory from "./CollapsibleStory.jsx";
 import { useTheme } from "../scroll.js";
 import { formatNumber } from "../../lib/metrics.js";
 import {
@@ -32,73 +32,26 @@ const DURATION = 1100;
 const SWEEP = 380;
 
 // เรื่องเล่า "ห้าสาขา คนละจังหวะ": ทุกบิลเป็นจุดหนึ่งจุด เลื่อนหน้าแล้วจุดชุดเดิมย้ายไปตอบคำถามถัดไป
-// ดูจบ (อ่านถึงขั้นท้าย ๆ แล้วเลื่อนผ่านไป) เรื่องจะยุบเหลือสรุปสั้น ๆ กดดูอีกรอบได้
-// จำไว้ใน sessionStorage: สลับแท็บกลับมายังยุบอยู่ แต่เปิดเว็บใหม่จะได้ดูเต็มอีกครั้ง
+// ดูจบแล้วยุบเหลือสรุปสั้น ๆ (CollapsibleStory)
 export default function BillStory({ data, holidays }) {
   const s = useStoryNumbers(data, holidays);
-  const wrapRef = useRef(null);
-  const endRef = useRef(null);
-  const reached = useRef(0); // ขั้นไกลสุดที่เคยอ่านถึง
-  const [collapsed, setCollapsed] = useState(() => {
-    try {
-      return sessionStorage.getItem(SEEN_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
-  const [replayed, setReplayed] = useState(false);
-
-  // ส่วนที่ยุบอยู่เหนือจอ จึงเลื่อนหน้าชดเชยความสูงที่หายไป เนื้อหาบนจอจะไม่กระโดด
-  useEffect(() => {
-    if (collapsed) return;
-    // ฟังการเลื่อนหน้าแทน IntersectionObserver: เลื่อนเร็ว ๆ ข้ามไปทีเดียวจุดท้ายเรื่องไม่เคย "ตัด" ขอบจอ observer จะไม่ยิง
-    let raf = 0;
-    const check = () => {
-      raf = 0;
-      const bar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--bar-h")) || 64;
-      if (endRef.current.getBoundingClientRect().top > bar || reached.current < STEP_COUNT - 2) return;
-      const wrap = wrapRef.current;
-      const before = wrap.getBoundingClientRect().bottom;
-      flushSync(() => setCollapsed(true));
-      window.scrollBy(0, wrap.getBoundingClientRect().bottom - before);
-      try {
-        sessionStorage.setItem(SEEN_KEY, "1");
-      } catch {
-        /* เก็บไม่ได้ก็แค่ไม่จำ */
-      }
-    };
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(check);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      cancelAnimationFrame(raf);
-    };
-  }, [collapsed]);
-
-  const replay = () => {
-    reached.current = 0;
-    setReplayed(true);
-    setCollapsed(false);
-    try {
-      sessionStorage.removeItem(SEEN_KEY);
-    } catch {
-      /* ไม่เป็นไร */
-    }
+  const recap = {
+    title: "ห้าสาขา คนละจังหวะ",
+    items: [
+      { value: pct(s.hours[s.office].beforeTen), text: <>ของบิลสาขา{s.office}ขายก่อน <span className="whitespace-nowrap">10 โมงเช้า</span> ห้างได้แค่ {pct(s.mallBeforeTen)}</> },
+      { value: pct(s.week[s.office].weekendRatio), text: <>ยอดวันเสาร์–อาทิตย์ของ{s.office} เทียบวันธรรมดา ส่วนห้างได้ {times(s.mallWeekend)}</> },
+      s.newcomers && { value: pct(s.newcomers.share), text: <>ของสมาชิกสาขา{s.newest} ไม่เคยซื้อที่สาขาไหนมาก่อน</> },
+      s.campusMay && { value: pct(s.campusMay.ratio), text: <>ยอดต่อวันของ{s.campus}ตอนเดือนพฤษภา เทียบเดือนอื่น</> },
+      { value: times(s.mallHoliday), text: <>บิลของห้างในวันหยุดราชการ เทียบวันธรรมดา</> },
+    ].filter(Boolean),
   };
-  useLayoutEffect(() => {
-    if (replayed && !collapsed) wrapRef.current.scrollIntoView({ block: "start" });
-  }, [replayed, collapsed]);
-  const onStep = useCallback((i) => {
-    reached.current = Math.max(reached.current, i);
-  }, []);
-
   return (
-    <div ref={wrapRef} className="story-wrap">
-      {collapsed ? <StoryRecap s={s} onReplay={replay} /> : <StoryStage s={s} holidays={holidays} onStep={onStep} />}
-      <div ref={endRef} aria-hidden="true" />
-    </div>
+    <CollapsibleStory
+      seenKey={SEEN_KEY}
+      stepCount={STEP_COUNT}
+      recap={recap}
+      renderStage={(onStep) => <StoryStage s={s} holidays={holidays} onStep={onStep} />}
+    />
   );
 }
 
@@ -144,40 +97,6 @@ function useStoryNumbers(data, holidays) {
     out.mallHoliday = avg(malls.map((m) => out.holiday[m].ratio));
     return out;
   }, [data, holidays]);
-}
-
-// ---------- สรุปหลังดูจบ ----------
-function StoryRecap({ s, onReplay }) {
-  const [ref, seen] = useSeen(0.2);
-  const items = [
-    { value: pct(s.hours[s.office].beforeTen), text: <>ของบิลสาขา{s.office}ขายก่อน <span className="whitespace-nowrap">10 โมงเช้า</span> ห้างได้แค่ {pct(s.mallBeforeTen)}</> },
-    { value: pct(s.week[s.office].weekendRatio), text: <>ยอดวันเสาร์–อาทิตย์ของ{s.office} เทียบวันธรรมดา ส่วนห้างได้ {times(s.mallWeekend)}</> },
-    s.newcomers && { value: pct(s.newcomers.share), text: <>ของสมาชิกสาขา{s.newest} ไม่เคยซื้อที่สาขาไหนมาก่อน</> },
-    s.campusMay && { value: pct(s.campusMay.ratio), text: <>ยอดต่อวันของ{s.campus}ตอนเดือนพฤษภา เทียบเดือนอื่น</> },
-    { value: times(s.mallHoliday), text: <>บิลของห้างในวันหยุดราชการ เทียบวันธรรมดา</> },
-  ].filter(Boolean);
-  return (
-    <section ref={ref} className={`story-recap ${seen ? "is-in" : ""}`} aria-label="สรุปเรื่อง ห้าสาขา คนละจังหวะ">
-      <div className="story-recap-head">
-        <p className="story-recap-eyebrow">ดูจบแล้ว · สรุปสั้น ๆ</p>
-        <h2 className="story-recap-title font-display">ห้าสาขา คนละจังหวะ</h2>
-        <button type="button" className="story-replay" onClick={onReplay}>
-          <svg viewBox="0 0 20 20" aria-hidden="true">
-            <path d="M4.5 10a5.5 5.5 0 1 0 1.6-3.9M5 3.5v3h3" />
-          </svg>
-          ดูเรื่องนี้อีกรอบ
-        </button>
-      </div>
-      <ul className="story-recap-list">
-        {items.map((it, i) => (
-          <li key={i} style={{ transitionDelay: `${120 + i * 70}ms` }}>
-            <b className="font-display">{it.value}</b>
-            <span>{it.text}</span>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
 }
 
 // ---------- ฉากจุด ----------
