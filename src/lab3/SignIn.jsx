@@ -169,8 +169,8 @@ export function SignInCard({ success = false }) {
     <Card className="relative mx-auto mt-40 max-w-sm animate-rise px-6 pt-11 pb-7">
       <LoginCat ref={cat} mode={catMode} />
       <div className="text-center">
-        <h1 className="text-base font-semibold text-ink">ล็อกอินเพื่อดูยอดขายสด</h1>
-        <p className="mt-1 text-[13px] text-ink-subtle">ยอดขายดูได้เฉพาะคนที่ล็อกอิน และทุกรายการที่บันทึกจะผูกกับบัญชีของคุณ</p>
+        <h1 className="text-base font-semibold text-ink">เข้าสู่ระบบบ้านบรู</h1>
+        <p className="mt-1 text-[13px] text-ink-subtle">ข้อมูลลูกค้า พยากรณ์ และยอดขายสด เปิดให้เฉพาะคนที่ล็อกอิน ทุกรายการที่บันทึกจะผูกกับบัญชีของคุณ</p>
       </div>
 
       <div className="mt-5 mb-4 flex justify-center">
@@ -300,7 +300,7 @@ export function SignInCard({ success = false }) {
         {busy === "google" ? "กำลังเปิดหน้าต่างล็อกอิน…" : "เข้าสู่ระบบด้วย Google"}
       </button>
 
-      <Message message={success ? { tone: "ok", text: "ล็อกอินแล้ว กำลังเปิดยอดขาย…" } : message} className="mt-4 text-center" />
+      <Message message={success ? { tone: "ok", text: "ล็อกอินแล้ว กำลังเปิดหน้าต่อไป…" } : message} className="mt-4 text-center" />
     </Card>
   );
 }

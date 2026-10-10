@@ -3,7 +3,7 @@
 // ออกแบบให้ไม่ทำลายข้อมูลจริง: เอกสารที่หลุดเข้าไปจะมีวันที่ปี 2000 (อยู่นอกทุกช่วงใน Dashboard)
 // และการแก้/ลบจะทำกับเอกสารที่ไม่มีอยู่จริง
 import { useEffect, useState } from "react";
-import { doc, setDoc, updateDoc, deleteDoc, getDocs, collection, query, limit, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, getDocs, collection, query, limit, serverTimestamp } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from "./firebase.js";
 import { AlertIcon, Card, CardHeader, CheckIcon } from "../components/ui.jsx";
@@ -26,10 +26,13 @@ const SIGNED_IN = [
   { name: "แก้ยอดขายที่บันทึกไปแล้ว", why: "ต้องปิด update", run: () => updateDoc(doc(db, "sales", "rules-test-no-such-doc"), { qty: 999 }), notFoundMeansOpen: true },
   { name: "ลบยอดขาย", why: "ต้องปิด delete", run: () => deleteDoc(doc(db, "sales", "rules-test-no-such-doc")) },
   { name: "แก้ราคาเมนูจากหน้าเว็บ", why: "products แก้ได้แค่ผ่าน admin script", run: () => updateDoc(doc(db, "products", "rules-test-no-such-product"), { price: 1 }), notFoundMeansOpen: true },
+  // Lab 4.2 · เขียนเอกสารใหม่ (ไม่ใช่ rfm/meta จริง) ถ้า rules หลวม ผลวิเคราะห์จริงก็ไม่โดนทับ
+  { name: "ปลอมผลวิเคราะห์", why: "analytics เขียนได้แค่ pipeline (firebase-admin)", run: () => setDoc(doc(db, "analytics", newId(8)), { segments: [], builtBy: "rules-test" }) },
 ];
 const SIGNED_OUT = [
   { name: "อ่านยอดขายตอนยังไม่ล็อกอิน", why: "ต้องล็อกอินก่อนถึงจะอ่านได้", run: () => getDocs(query(collection(db, "sales"), limit(1))) },
   { name: "บันทึกยอดขายตอนยังไม่ล็อกอิน", why: "ต้องล็อกอินก่อนถึงจะเขียนได้", run: () => setDoc(doc(db, "sales", newId(0)), base("no-login")) },
+  { name: "อ่านผลวิเคราะห์ลูกค้าโดยไม่ล็อกอิน", why: "analytics/rfm มีรหัสลูกค้า ต้องล็อกอินก่อน", run: () => getDoc(doc(db, "analytics", "rfm")) },
 ];
 
 const NB = "\u00a0"; // ให้ตัวเลขกับหน่วยอยู่บรรทัดเดียวกัน
@@ -87,8 +90,8 @@ export default function RulesTester() {
             user === undefined
               ? "กำลังเช็กว่าล็อกอินอยู่ไหม…"
               : user
-                ? `ตอนนี้ทดสอบในชื่อ ${user.displayName ?? user.email} · ถ้าจะลองชุดที่ไม่ล็อกอิน ให้ออกจากระบบแล้วกลับมาที่นี่`
-                : "ตอนนี้ยังไม่ได้ล็อกอิน · ล็อกอินที่แท็บสดแล้วกลับมาลองชุดที่เหลือ"
+                ? `ตอนนี้ทดสอบในชื่อ ${user.displayName ?? user.email} · ถ้าจะลองชุดที่ไม่ล็อกอิน ให้ออกจากระบบที่มุมขวาบนแล้วกลับมาที่นี่`
+                : "ตอนนี้ยังไม่ได้ล็อกอิน · กดเข้าสู่ระบบที่มุมขวาบนแล้วกลับมาลองชุดที่เหลือ"
           }
         >
           <button

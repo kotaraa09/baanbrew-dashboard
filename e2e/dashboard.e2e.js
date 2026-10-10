@@ -152,8 +152,8 @@ test.describe("ภาพรวม", () => {
     await expect(page.locator(".story-recap-list li")).toHaveCount(5);
     await expect(page.locator(".story-recap-list b").first()).toHaveText(/\d+%/);
     // สลับแท็บแล้วกลับมา ยังยุบอยู่
-    await page.getByRole("radio", { name: "ลูกค้า" }).click();
-    await page.getByRole("radio", { name: "ภาพรวม" }).click();
+    await pageTab(page, "ลูกค้า").click();
+    await pageTab(page, "ภาพรวม").click();
     await expect(page.locator(".story-recap")).toBeVisible();
     // ดูอีกรอบ: กลับมาเป็นเรื่องเต็ม ที่ขั้นแรก
     await page.getByRole("button", { name: "ดูเรื่องนี้อีกรอบ" }).click();
@@ -222,20 +222,23 @@ test.describe("ลูกค้า", () => {
   });
 });
 
+// เมนูหน้าเป็นลิงก์ใน <nav aria-label="หน้า"> (PageNav) ไม่ใช่ radio เหมือนสวิตช์ในการ์ด
+// หน้าแล็บอยู่ใน <nav aria-label="หน้าแล็บ"> ท้ายหน้า · exact: "ลูกค้า" ต้องไม่ไปโดน "ลูกค้า & เมนู"
+const pageTab = (page, name, menu = "หน้า") => page.getByRole("navigation", { name: menu, exact: true }).getByRole("link", { name, exact: true });
+
 test.describe("แท็บทั้งหมด", () => {
   const TABS = [
     { name: "ภาพรวม", hash: "", expect: "ขายได้" },
     { name: "ลูกค้า", hash: "#customers", expect: "เส้นทางของสมาชิก" },
-    { name: "Lab 2.2 · ซ่อมกราฟ", hash: "#lab2", expect: "Lab 2.2 · ซ่อมกราฟแย่" },
-    { name: "สด · Firestore", hash: "#live", expect: "เข้าสู่ระบบ" },
+    { name: "Lab 2.2 · ซ่อมกราฟ", hash: "#lab2", expect: "Lab 2.2 · ซ่อมกราฟแย่", menu: "หน้าแล็บ" },
     { name: "ทดสอบ Rules", hash: "#rules", expect: "Lab 3.3" },
   ];
 
   for (const t of TABS) {
     test(`แท็บ ${t.name}: กดแล้วเปิดได้ และจำไว้ใน URL`, async ({ page }) => {
       await openOverview(page);
-      await page.getByRole("radio", { name: t.name }).click();
-      await expect(page.getByRole("radio", { name: t.name })).toHaveAttribute("aria-checked", "true");
+      await pageTab(page, t.name, t.menu).click();
+      await expect(pageTab(page, t.name, t.menu)).toHaveAttribute("aria-current", "page");
       await expect(page.locator(".page-enter")).toContainText(t.expect);
       if (t.hash) await expect(page).toHaveURL(new RegExp(`${t.hash}$`));
 
@@ -253,6 +256,24 @@ test.describe("แท็บทั้งหมด", () => {
   }
 });
 
+test.describe("เข้าสู่ระบบ", () => {
+  test("ยังไม่ล็อกอิน: แถบบนซ่อนหน้าที่ต้องล็อกอิน และมีปุ่มเข้าสู่ระบบปุ่มเดียว", async ({ page }) => {
+    await openOverview(page);
+    await expect(page.getByRole("navigation", { name: "หน้า", exact: true }).getByRole("link")).toHaveCount(3); // ภาพรวม · ลูกค้า · ทดสอบ Rules
+    await page.getByRole("banner").getByRole("button", { name: "เข้าสู่ระบบ" }).click();
+    await expect(page).toHaveURL(/#login$/);
+    await expect(page.locator(".page-enter")).toContainText("เข้าสู่ระบบบ้านบรู");
+  });
+
+  for (const hash of ["#live", "#analytics", "#forecast"]) {
+    test(`เปิด ${hash} ตอนยังไม่ล็อกอิน: ไปหน้าเข้าสู่ระบบ`, async ({ page }) => {
+      await page.goto(`/${hash}`);
+      await expect(page).toHaveURL(/#login$/);
+      await expect(page.locator(".page-enter")).toContainText("เข้าสู่ระบบบ้านบรู");
+    });
+  }
+});
+
 test.describe("ธีม", () => {
   test("สวิตช์สลับเช้า/ค่ำ และจำค่าหลังรีเฟรช", async ({ page }) => {
     await openOverview(page);
@@ -263,6 +284,22 @@ test.describe("ธีม", () => {
     await expect(html).toHaveAttribute("data-theme", after);
     await page.reload();
     await expect(html).toHaveAttribute("data-theme", after);
+  });
+
+  // บั๊กจริง: เบราว์เซอร์ใน Claude desktop ส่ง clientX ผิดเมื่อคลิกบนสวิตช์ (ย่อด้วย CSS zoom)
+  // วงกลมเลยไปเริ่มกลางจอ จำลองด้วย pointerdown ที่พิกัดผิด แล้วตรวจว่าวงกลมยังเริ่มกลางสวิตช์
+  test("วงกลมเปลี่ยนธีมเริ่มที่กลางสวิตช์ ไม่ใช่พิกัดเมาส์ที่เบราว์เซอร์รายงาน", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await openOverview(page);
+    const sw = await page.locator(".dn-switch").boundingBox();
+    await page.locator(".dn-switch").dispatchEvent("pointerdown", { clientX: 5, clientY: 400, bubbles: true });
+    await page.locator("#dn-toggle").dispatchEvent("click");
+    const origin = await page.evaluate(() => {
+      const s = document.documentElement.style;
+      return [parseFloat(s.getPropertyValue("--vt-x")), parseFloat(s.getPropertyValue("--vt-y"))];
+    });
+    expect(origin[0]).toBeCloseTo(sw.x + sw.width / 2, 0);
+    expect(origin[1]).toBeCloseTo(sw.y + sw.height / 2, 0);
   });
 
   test("ไม่เคยเลือกธีม: เลือกตามเวลากรุงเทพฯ", async ({ page }) => {
