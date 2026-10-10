@@ -3,7 +3,7 @@ import { flushSync } from "react-dom";
 import { useSeen } from "../ui.jsx";
 
 // เรื่องเล่าแบบเลื่อนดูที่ "ดูจบแล้วยุบ": อ่านถึงขั้นท้าย ๆ แล้วเลื่อนผ่านไป เรื่องจะยุบเหลือสรุปสั้น ๆ กดดูอีกรอบได้
-// จำไว้ใน sessionStorage: สลับแท็บกลับมายังยุบอยู่ แต่เปิดเว็บใหม่จะได้ดูเต็มอีกครั้ง
+// จำไว้ใน localStorage: ดูจบแล้วปิดเว็บเปิดใหม่ก็ยังยุบอยู่ กด "ดูเรื่องนี้อีกรอบ" ถ้าอยากดูเต็มอีกครั้ง
 // renderStage(onStep) วาดเรื่องเต็ม (เรียก onStep(i) เมื่ออ่านถึงขั้น i) · recap = { title, items: [{ value, text }] }
 export default function CollapsibleStory({ seenKey, stepCount, renderStage, recap }) {
   const wrapRef = useRef(null);
@@ -11,7 +11,7 @@ export default function CollapsibleStory({ seenKey, stepCount, renderStage, reca
   const reached = useRef(0); // ขั้นไกลสุดที่เคยอ่านถึง
   const [collapsed, setCollapsed] = useState(() => {
     try {
-      return sessionStorage.getItem(seenKey) === "1";
+      return localStorage.getItem(seenKey) === "1";
     } catch {
       return false;
     }
@@ -32,7 +32,7 @@ export default function CollapsibleStory({ seenKey, stepCount, renderStage, reca
       flushSync(() => setCollapsed(true));
       window.scrollBy(0, wrap.getBoundingClientRect().bottom - before);
       try {
-        sessionStorage.setItem(seenKey, "1");
+        localStorage.setItem(seenKey, "1");
       } catch {
         /* เก็บไม่ได้ก็แค่ไม่จำ */
       }
@@ -52,7 +52,7 @@ export default function CollapsibleStory({ seenKey, stepCount, renderStage, reca
     setReplayed(true);
     setCollapsed(false);
     try {
-      sessionStorage.removeItem(seenKey);
+      localStorage.removeItem(seenKey);
     } catch {
       /* ไม่เป็นไร */
     }
