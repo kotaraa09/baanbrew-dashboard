@@ -1,6 +1,6 @@
 // Lab 4.4–4.5 · พยากรณ์และวันผิดปกติ
 // คำนวณในเบราว์เซอร์จาก analytics/daily (ยอดรายวันแยกสาขา ~2,700 แถว) จึงเปลี่ยนสาขาได้ทันทีโดยไม่อ่าน Firestore เพิ่ม
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ResponsiveContainer, ComposedChart, Line, Area, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine,
 } from "recharts";
@@ -8,7 +8,7 @@ import {
   AnalyticsShell, Card, Pending, Insight, MAIN, BAR, SOFT, INK, SUBTLE, LINE_STRONG, DOWN,
   axis, grid, legend, tooltip, buttonClass, thClass, rowClass, thaiDay,
 } from "./ui.jsx";
-import { AlertIcon, Segmented } from "../components/ui.jsx";
+import { AlertIcon, Collapsible, Segmented, prefersReducedMotion } from "../components/ui.jsx";
 import { useAnalytics } from "./useAnalytics.js";
 import { toSeries } from "../lib/analytics/daily.js";
 import { seasonalForecast, backtest, mape } from "../lib/analytics/forecast.js";
@@ -158,6 +158,27 @@ const toneOf = (change) => (change < 0 ? DOWN : MAIN);
 
 function AnomalyCard({ daily, holidays }) {
   const [focus, setFocus] = useState(null);
+  // แถวล่าสุดที่เปิด: ตอนกดปิด กราฟต้องอยู่ต่อจนหดเสร็จ (focus เป็น null ไปแล้ว)
+  const [shown, setShown] = useState(null);
+  const pick = (a) => {
+    setFocus(a);
+    if (a) setShown(a);
+  };
+  const zoomRef = useRef(null);
+  const wasOpen = useRef(false);
+  // เปิดกราฟตอนเลื่อนลงมาดูแถวล่าง ๆ: กราฟอยู่เหนือตาราง อาจโผล่นอกจอ จึงเลื่อนให้เห็นพอดี (เฉพาะตอนเปิด ไม่ใช่ตอนสลับแถว)
+  useEffect(() => {
+    const opening = focus && !wasOpen.current;
+    wasOpen.current = !!focus;
+    if (!opening) return;
+    const el = zoomRef.current;
+    const t = setTimeout(() => {
+      const bar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--bar-h")) || 64;
+      const top = el?.getBoundingClientRect().top ?? 0;
+      if (top < bar) window.scrollBy({ top: top - bar - 12, behavior: prefersReducedMotion() ? "instant" : "smooth" });
+    }, 60);
+    return () => clearTimeout(t);
+  }, [focus]);
   const result = useMemo(() => tryRun(() => scoreAnomalies(daily, holidays)), [daily, holidays]);
   if (result.error) return <Card title="วันที่ยอดขายผิดปกติ"><Pending lab="Lab 4.5" error={result.error} /></Card>;
   const all = result.value;
@@ -166,7 +187,11 @@ function AnomalyCard({ daily, holidays }) {
   return (
     <Card title="วันที่ยอดขายผิดปกติ 15 อันดับ"
           sub="เทียบกับค่ากลางของวันเดียวกันของสัปดาห์ใน 8 สัปดาห์ก่อน · ไม่นับวันหยุดราชการ · คลิกแถวเพื่อดูกราฟรอบวันนั้น">
-      {focus && <ZoomChart daily={daily} all={all} focus={focus} onClose={() => setFocus(null)} />}
+      <div ref={zoomRef}>
+        <Collapsible open={!!focus} gap={16} duration={420}>
+          {shown && <ZoomChart daily={daily} all={all} focus={shown} onClose={() => pick(null)} />}
+        </Collapsible>
+      </div>
       <div className="-mx-4 overflow-x-auto sm:-mx-5">
         <table className="w-full min-w-[600px] text-[13px] tabular-nums">
           <thead className="text-left">
@@ -184,7 +209,7 @@ function AnomalyCard({ daily, holidays }) {
               const sel = focus && focus.date === a.date && focus.branch === a.branch;
               const pctChange = Math.round(Math.abs(a.change) * 100);
               return (
-                <tr key={a.date + a.branch} onClick={() => setFocus(sel ? null : a)} aria-selected={!!sel}
+                <tr key={a.date + a.branch} onClick={() => pick(sel ? null : a)} aria-selected={!!sel}
                     className={`${rowClass} cursor-pointer ${sel ? "bg-surface-selected" : "hover:bg-surface-hover"}`}>
                   <td className="font-numeral py-2.5 pr-3 pl-4 text-ink-muted sm:pl-5">{i + 1}</td>
                   <td className="pr-3 text-ink">
@@ -223,8 +248,12 @@ function ZoomChart({ daily, all, focus, onClose }) {
     });
   }, [daily, all, focus]);
   const color = toneOf(focus.change);
+  // เส้นยอดจริงลากจากซ้ายไปขวาตอนเปิด แล้วจุดของวันที่เลือกเด้งขึ้นตอนเส้นมาถึง (Recharts วาดจุดหลังเส้นเสร็จ)
+  // ลดการเคลื่อนไหว: วาดทันที (แอนิเมชันของ Recharts เป็น JS กฎ CSS ส่วนกลางจึงคุมไม่ได้)
+  const animate = !prefersReducedMotion();
   return (
-    <div className="mb-4 animate-fade-in rounded-xl bg-canvas p-3 sm:p-4">
+    // key ตามแถว: สลับแถวระหว่างเปิดอยู่ กราฟใหม่จางเข้าและลากเส้นใหม่ แทนการกระตุกเปลี่ยน
+    <div key={focus.date + focus.branch} className="animate-fade-in rounded-xl bg-canvas p-3 sm:p-4">
       <div className="flex items-start justify-between gap-3">
         <p className="text-[13px] text-ink-subtle">
           <span className="font-semibold text-ink">{focus.branch} · {thaiDay(focus.date)}</span>{" "}
@@ -244,10 +273,13 @@ function ZoomChart({ daily, all, focus, onClose }) {
             <Tooltip labelFormatter={thaiDay} formatter={(v, n) => [fmtBaht(v), n]} {...tooltip} />
             <Legend {...legend} />
             <ReferenceLine x={focus.date} stroke={color} strokeDasharray="3 3" />
-            <Line name="ค่าปกติ" dataKey="expected" stroke={SOFT} strokeWidth={2} strokeDasharray="6 4" dot={false} connectNulls isAnimationActive={false} />
-            <Line name="ยอดจริง" dataKey="actual" stroke={INK} strokeWidth={1.75} isAnimationActive={false}
+            <Line name="ค่าปกติ" dataKey="expected" stroke={SOFT} strokeWidth={2} strokeDasharray="6 4" dot={false} connectNulls
+                  isAnimationActive={false} />
+            <Line name="ยอดจริง" dataKey="actual" stroke={INK} strokeWidth={1.75}
+                  isAnimationActive={animate} animationDuration={700} animationEasing="ease-out"
                   dot={(p) => p.payload.date === focus.date
-                    ? <circle key={p.key} cx={p.cx} cy={p.cy} r={6} fill={color} stroke="var(--color-surface)" strokeWidth={2} />
+                    ? <circle key={p.key} cx={p.cx} cy={p.cy} r={6} fill={color} stroke="var(--color-surface)" strokeWidth={2}
+                              className="animate-pop" style={{ transformBox: "fill-box", transformOrigin: "center" }} />
                     : <g key={p.key} />} />
           </ComposedChart>
         </ResponsiveContainer>
