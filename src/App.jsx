@@ -13,8 +13,11 @@ import MenuMatrixCard from "./components/MenuMatrixCard.jsx";
 import BillStory from "./components/story/BillStory.jsx";
 import HourClockCard from "./components/HourClockCard.jsx";
 import SectionBand from "./components/SectionBand.jsx";
-import { BeanIcon, Card, CalendarIcon, Collapsible, CupIcon, DripperIcon, LiveIcon, Segmented, Select, ShieldIcon, Skeleton, StoreIcon } from "./components/ui.jsx";
+import { BeanIcon, Card, CalendarIcon, Collapsible, CupIcon, DripperIcon, LiveIcon, Select, ShieldIcon, Skeleton, StoreIcon } from "./components/ui.jsx";
 import Logo from "./components/Logo.jsx";
+import PageNav, { NextPage } from "./components/PageNav.jsx";
+import Account from "./components/Account.jsx";
+import { useAuthUser } from "./lab3/useAuthUser.js";
 import Lab2Page from "./lab2/Lab2Page.jsx";
 import CustomersView from "./components/CustomersView.jsx";
 // Lab 3 โหลดแบบ lazy: Firebase SDK จะถูกดาวน์โหลดเมื่อเปิดแท็บสด/ทดสอบ Rules เท่านั้น
@@ -380,24 +383,35 @@ function Dashboard({ data }) {
   );
 }
 
+// place: "nav" = แถบบน · "footer" = แถว "หน้าแล็บ" ท้ายหน้า (ยังเปิดได้ แค่ไม่ใช่หน้าหลัก)
+// group: แถบบนคั่นด้วยเส้นตั้ง "shop" = หน้าของร้าน | "lab" = หน้าแล็บที่ใช้ Firestore
+// auth: ต้องล็อกอิน (ซ่อนจากแถบบนตอนยังไม่ล็อกอิน เปิดลิงก์ตรง ๆ แล้วไปหน้าเข้าสู่ระบบ)
+// demoOk: เปิดได้ในโหมดสาธิต (?demo) โดยไม่ต้องล็อกอิน เพราะคำนวณจาก CSV ไม่ได้อ่าน Firestore
+// teaser = คำถามที่หน้านั้นตอบ ใช้ในการ์ด "หน้าถัดไป" ท้ายหน้าก่อนหน้า
 const TABS = [
-  { value: "overview", label: "ภาพรวม", icon: BeanIcon },
-  { value: "customers", label: "ลูกค้า", icon: CupIcon },
-  { value: "lab2", label: "Lab 2.2 · ซ่อมกราฟ", icon: DripperIcon },
-  { value: "live", label: "สด · Firestore", icon: LiveIcon },
-  { value: "rules", label: "ทดสอบ Rules", icon: ShieldIcon },
-  { value: "analytics", label: "ลูกค้า & เมนู", icon: StoreIcon },
-  { value: "forecast", label: "พยากรณ์ & ผิดปกติ", icon: CalendarIcon },
+  { value: "overview", label: "ภาพรวม", icon: BeanIcon, place: "nav", group: "shop", teaser: "ร้านทั้ง 5 สาขาเป็นอย่างไรบ้าง" },
+  { value: "customers", label: "ลูกค้า", icon: CupIcon, place: "nav", group: "shop", teaser: "ใครคือขาประจำ และคนกลุ่มนี้ทำยอดให้ร้านเท่าไหร่" },
+  { value: "analytics", label: "ลูกค้า & เมนู", icon: StoreIcon, place: "nav", group: "shop", auth: true, demoOk: true, teaser: "ลูกค้ากลุ่มไหนกำลังจะหาย และเมนูไหนทำยอดส่วนใหญ่ของร้าน" },
+  { value: "forecast", label: "พยากรณ์ & ผิดปกติ", icon: CalendarIcon, place: "nav", group: "shop", auth: true, demoOk: true, teaser: "สัปดาห์หน้าน่าจะขายได้เท่าไหร่ และวันไหนผิดปกติ" },
+  { value: "live", label: "สด · Firestore", icon: LiveIcon, place: "nav", group: "lab", auth: true, teaser: "ยอดขายสดจาก Firestore และฟอร์มบันทึกการขาย" },
+  { value: "lab2", label: "Lab 2.2 · ซ่อมกราฟ", icon: DripperIcon, place: "footer" },
+  // ทดสอบ Rules มีชุดทดสอบตอนไม่ล็อกอินด้วย จึงอยู่บนแถบบนเสมอ ไม่ซ่อนหลังการล็อกอิน
+  { value: "rules", label: "ทดสอบ Rules", icon: ShieldIcon, place: "nav", group: "lab", teaser: "ลองโจมตีฐานข้อมูลของตัวเอง ดูว่า rules กันได้ครบไหม" },
 ];
+// หน้าเข้าสู่ระบบ: มี URL (#login) แต่ไม่อยู่ในเมนู
+const ROUTES = [...TABS, { value: "login" }];
+const TAB_BY_VALUE = Object.fromEntries(TABS.map((t) => [t.value, t]));
 // แท็บ Lab 3 อ่านจาก Firestore ไม่ได้ใช้ sales.csv จึงแสดงได้แม้โหลด CSV ไม่สำเร็จ
-const LAB3_TABS = ["live", "rules"];
+const LAB3_TABS = ["live", "rules", "login"];
 const LAB4_TABS = ["analytics", "forecast"];
 // แท็บที่ไม่ต้องรอ sales.csv โหลดเสร็จ
 const FIRESTORE_TABS = [...LAB3_TABS, ...LAB4_TABS];
+const IS_DEMO = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("demo");
+const needsLogin = (value) => Boolean(TAB_BY_VALUE[value]?.auth && !(IS_DEMO && TAB_BY_VALUE[value].demoOk));
 
 // จำแท็บไว้ใน URL (#customers, #lab2) รีเฟรชแล้วยังอยู่แท็บเดิม
 function useTab() {
-  const read = () => TABS.find((t) => `#${t.value}` === window.location.hash)?.value ?? "overview";
+  const read = () => ROUTES.find((t) => `#${t.value}` === window.location.hash)?.value ?? "overview";
   const [tab, setTab] = useState(read);
   useEffect(() => {
     const onHash = () => setTab(read());
@@ -426,6 +440,20 @@ function useScrolled() {
 export default function App() {
   const data = useDashboardData();
   const [tab, setTab] = useTab();
+  const { user, signOut } = useAuthUser();
+  // หน้าที่จะพาไปหลังล็อกอินสำเร็จ (หน้าที่ต้องล็อกอินที่ผู้ใช้ตั้งใจเปิด)
+  const [loginNext, setLoginNext] = useState("analytics");
+  // เปิดหน้าที่ต้องล็อกอินตอนยังไม่ได้ล็อกอิน (ลิงก์ตรง หรือเพิ่งออกจากระบบ): ไปหน้าเข้าสู่ระบบ
+  useEffect(() => {
+    if (user === null && needsLogin(tab)) {
+      setLoginNext(tab);
+      setTab("login");
+    }
+  }, [user, tab]);
+  // แถบบน: หน้าที่ต้องล็อกอินแสดงเมื่อล็อกอินแล้ว (หรือใช้ได้ในโหมดสาธิต) · คั่นหน้าร้าน | หน้าแล็บ
+  const navTabs = TABS.filter((t) => t.place === "nav" && (!needsLogin(t.value) || user));
+  const navGroups = ["shop", "lab"].map((g) => navTabs.filter((t) => t.group === g)).filter((g) => g.length);
+  const footerTabs = TABS.filter((t) => t.place === "footer");
   // แถบแท็บเปลี่ยนทันที ส่วนเนื้อหาของแท็บ render ตามหลังแบบขัดจังหวะได้
   // (แท็บ Lab 2.2 มี 10 กราฟ ถ้า render พร้อมกดจะค้างจนกว่าจะวาดเสร็จ)
   const page = useDeferredValue(tab);
@@ -443,7 +471,7 @@ export default function App() {
   }, []);
   useEffect(() => {
     const bar = tabBarRef.current;
-    const active = bar?.querySelector('[aria-checked="true"]');
+    const active = bar?.querySelector('[aria-current="page"]');
     if (!active) return;
     const b = bar.getBoundingClientRect();
     const a = active.getBoundingClientRect();
@@ -463,20 +491,29 @@ export default function App() {
   return (
     <>
       <header ref={headerRef} className={`top-bar ${scrolled ? "is-scrolled" : ""}`}>
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 sm:px-6">
-          <div className="mr-auto lg:mr-0">
+        <div className="mx-auto flex max-w-6xl items-center gap-x-3 px-4 sm:gap-x-4 sm:px-6">
+          <div className="mr-auto min-w-0">
             <Logo />
           </div>
-          {/* 5 แท็บกว้างเกินจอมือถือ ให้เลื่อนแถบแท็บแนวนอนแทนที่จะดันทั้งหน้า */}
-          <div ref={tabBarRef} className="order-last -mx-4 w-[calc(100%+2rem)] overflow-x-auto px-4 lg:order-none lg:mx-auto lg:w-auto lg:px-0">
-            <Segmented label="หน้า" value={tab} onChange={changeTab} options={TABS} />
-          </div>
           {data.status === "ready" && (
-            <p className="hidden text-[13px] text-ink-subtle xl:block">
+            <p className="hidden text-[13px] text-ink-subtle md:block">
               ข้อมูลล่าสุด <span className="font-medium text-ink">{formatDate(data.last)}</span> · {data.branches.length} สาขา
             </p>
           )}
           <ThemeToggle />
+          <Account
+            user={user}
+            hideSignIn={tab === "login"}
+            onSignIn={() => changeTab("login")}
+            onSignOut={() => {
+              signOut?.();
+              if (needsLogin(tab)) changeTab("overview");
+            }}
+          />
+        </div>
+        {/* แถวเมนูหน้าแยกจากแถวตรา: กว้างเต็มแถว อ่านออกว่าเป็นทางไปหน้าอื่น ไม่ใช่สวิตช์ · จอแคบเลื่อนแนวนอนได้ */}
+        <div className="mx-auto mt-2 max-w-6xl px-1 sm:px-3">
+          <PageNav groups={navGroups} value={tab} onChange={changeTab} navRef={tabBarRef} />
         </div>
       </header>
 
@@ -487,9 +524,12 @@ export default function App() {
 
           {/* key ตามแท็บ: เปลี่ยนหน้าแล้วเนื้อหาใหม่ลอยขึ้นพร้อมจางจากเบลอ */}
           <div key={page} className="page-enter space-y-4">
-            {LAB3_TABS.includes(page) ? (
+            {needsLogin(page) && !user ? (
+              // ยังไม่รู้ว่าล็อกอินอยู่ไหม (Firebase กำลังโหลด) · ถ้าไม่ได้ล็อกอิน effect ด้านบนจะพาไปหน้าเข้าสู่ระบบ
+              <Skeleton className="h-40 rounded-[var(--radius-card)] bg-surface" />
+            ) : LAB3_TABS.includes(page) ? (
               <Suspense fallback={<Skeleton className="h-40 rounded-[var(--radius-card)] bg-surface" />}>
-                <Lab3Page view={page} />
+                <Lab3Page view={page} onSignedIn={() => changeTab(loginNext)} />
               </Suspense>
             ) : LAB4_TABS.includes(page) ? (
               <Suspense fallback={<Skeleton className="h-40 rounded-[var(--radius-card)] bg-surface" />}>
@@ -516,12 +556,38 @@ export default function App() {
             )}
           </div>
 
+          {/* ท้ายหน้า: ทางไปหน้าถัดไป (หน้าสุดท้ายไม่มี) */}
+          {/* ไล่ตามแถบบน หน้าแล็บใน footer และหน้าเข้าสู่ระบบไม่มี */}
+          <NextPage tab={navTabs.some((t) => t.value === page) ? navTabs[navTabs.findIndex((t) => t.value === page) + 1] : null} onGo={changeTab} />
+
           <SectionBand images="origin" eyebrow="ต้นทาง · ดอยทางภาคเหนือ" title={["จากดอยทางเหนือ", "ถึงแก้วในกรุงเทพฯ"]} tall>
             <p className="band-text">ตัวเลขทุกตัวในหน้านี้คิดมาจากไฟล์ข้อมูลของร้าน เปิด Excel เช็กเองได้เลย</p>
           </SectionBand>
 
-          <footer className="pt-2 text-xs text-ink-muted">
+          <footer className="space-y-3 pt-2">
+            <nav aria-label="หน้าแล็บ" className="flex flex-wrap items-center gap-x-1 gap-y-1 text-[13px]">
+              <span className="mr-1 text-ink-subtle">หน้าแล็บ</span>
+              {footerTabs.map((t) => (
+                <a
+                  key={t.value}
+                  href={`#${t.value}`}
+                  aria-current={page === t.value ? "page" : undefined}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    changeTab(t.value);
+                  }}
+                  className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 font-medium transition-colors hover:bg-surface-hover hover:text-ink focus-visible:outline-2 focus-visible:outline-chart ${
+                    page === t.value ? "bg-surface-selected text-ink" : "text-ink-subtle"
+                  }`}
+                >
+                  <t.icon className="size-4 text-ink-muted" />
+                  {t.label}
+                </a>
+              ))}
+            </nav>
+            <p className="text-xs text-ink-muted">
             คิดจาก public/sales.csv · 1 แถว = 1 รายการ · ยอดขาย = qty × unit_price · ช่วงเวลานับย้อนจากวันล่าสุดที่มีข้อมูล
+            </p>
           </footer>
         </div>
       </main>

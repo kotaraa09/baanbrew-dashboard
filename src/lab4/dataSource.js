@@ -10,11 +10,9 @@ import { buildDemoAnalytics } from "./demoAnalytics.js";
 
 const DOCS = ["meta", "daily", "rfm", "cohort", "abc"];
 
-// บัญชีอีเมลที่ยังไม่ยืนยัน rules จะไม่ให้อ่าน (email_verified) จึงถือว่ายังไม่ได้ล็อกอินสำหรับหน้านี้
-const verified = (u) => (u && u.emailVerified ? u : null);
-
 export const firestoreSource = {
-  onAuth: (cb) => onAuthStateChanged(auth, (u) => cb(verified(u))),
+  // ส่ง user ตัวจริง (รวม emailVerified) ให้หน้าเว็บเลือกเองว่าจะขึ้นหน้าล็อกอินหรือหน้ายืนยันอีเมล
+  onAuth: (cb) => onAuthStateChanged(auth, cb),
   signIn: () => signInWithPopup(auth, googleProvider),
   signOut: () => signOut(auth),
   async loadAnalytics() {

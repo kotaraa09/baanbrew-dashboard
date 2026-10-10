@@ -8,7 +8,7 @@ export default async function warmup(config) {
   const page = await browser.newPage();
   await page.goto(baseURL);
   await page.locator(".data-headline").waitFor({ timeout: 120_000 });
-  for (const hash of ["#customers", "#lab2", "#live", "#rules"]) {
+  for (const hash of ["#customers", "#lab2", "#login", "#rules"]) {
     await page.goto(`${baseURL}/${hash}`);
     await page.locator(".page-enter").waitFor({ timeout: 60_000 });
   }
