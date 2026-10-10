@@ -12,9 +12,11 @@ const test = base.extend({
 });
 
 // รอให้ CSV โหลดเสร็จ (หัวเรื่องจากข้อมูลขึ้นแล้ว) ก่อนเริ่มทดสอบหน้าภาพรวม
+// ตอนเริ่มชุดทดสอบ 8 เบราว์เซอร์เปิดหน้าหนัก ๆ พร้อมกัน แต่ละหน้ายังโหลด Firebase (เช็กการล็อกอิน) ด้วย
+// sales.csv 6 MB จึงโหลด+แปลงนานเกิน 15 วินาทีได้ ให้รอขั้นนี้นานกว่า expect ปกติ (ยังอยู่ในเวลา 60 วินาทีของการทดสอบ)
 async function openOverview(page) {
   await page.goto("/");
-  await expect(page.locator(".data-headline")).toContainText("ขายได้");
+  await expect(page.locator(".data-headline")).toContainText("ขายได้", { timeout: 40_000 });
 }
 
 test.describe("ภาพรวม", () => {
